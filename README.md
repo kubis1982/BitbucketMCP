@@ -1,6 +1,6 @@
 # Bitbucket MCP Server
 
-A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Cloud REST API, enabling Pull Request operations through AI-powered tools.
+A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Cloud REST API, enabling Pull Request operations through AI-powered tools. Built with Microsoft Kiota for type-safe API client generation.
 
 ## Features
 
@@ -10,6 +10,8 @@ A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Clou
   - Update PR title, description, and reviewers
   - Toggle between open and draft status
   - Retrieve PR details
+  - **NEW**: List pull requests with state filtering
+- **Kiota-Generated Client**: Type-safe API client auto-generated from Bitbucket OpenAPI specification
 - **Flexible Authentication**: Support for both Bitbucket app passwords and OAuth 2.0 tokens
 - **Docker Support**: Ready-to-use Docker container with multi-stage build
 - **Modern .NET**: Built on .NET 10 with latest SDK patterns
@@ -20,6 +22,7 @@ A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Clou
 - .NET 10 SDK (for local development)
 - Bitbucket Cloud account
 - Bitbucket app password or OAuth token
+- **For development**: Microsoft Kiota CLI tool (installed locally via dotnet tool)
 
 ## Quick Start
 
@@ -184,6 +187,24 @@ Retrieves details of a pull request.
 }
 ```
 
+### 4. ListPullRequests
+
+Lists pull requests in a repository with optional state filtering.
+
+**Parameters**:
+- `workspace` (required): Workspace ID or slug
+- `repository` (required): Repository name
+- `state` (optional): Filter by state - `OPEN`, `MERGED`, `DECLINED`, `SUPERSEDED` (defaults to `OPEN`)
+
+**Example**:
+```json
+{
+  "workspace": "myworkspace",
+  "repository": "myrepo",
+  "state": "OPEN"
+}
+```
+
 ## API Mapping
 
 The server wraps the following Bitbucket Cloud REST API v2.0 endpoints:
@@ -193,6 +214,7 @@ The server wraps the following Bitbucket Cloud REST API v2.0 endpoints:
 | CreatePullRequest | POST | `/repositories/{workspace}/{repo}/pullrequests` |
 | UpdatePullRequest | PUT | `/repositories/{workspace}/{repo}/pullrequests/{pr_id}` |
 | GetPullRequest | GET | `/repositories/{workspace}/{repo}/pullrequests/{pr_id}` |
+| **ListPullRequests** | **GET** | **`/repositories/{workspace}/{repo}/pullrequests`** |
 
 Base URL: `https://api.bitbucket.org/2.0`
 
@@ -264,18 +286,55 @@ docker run -it --rm \
 
 ```
 BitbucketMCP/
+├── .config/
+│   └── dotnet-tools.json       # Local .NET tools manifest (Kiota)
+├── openapi/
+│   └── bitbucket-swagger.json  # Bitbucket OpenAPI specification
+├── scripts/
+│   ├── generate-client.ps1     # PowerShell script for client generation
+│   └── generate-client.bat     # Batch wrapper for generation script
 ├── src/
 │   └── BitbucketMCP/
 │       ├── Configuration/      # Configuration models
-│       ├── Models/             # Data models
-│       ├── Services/           # Bitbucket API client
+│       ├── Generated/          # Kiota-generated API client (auto-generated)
+│       ├── Models/             # MCP data models
+│       ├── Services/           # BitbucketApiClient wrapper + Auth providers
 │       ├── Tools/              # MCP tool implementations
-│       └── Program.cs          # Application entry point
+│       └── Program.cs          # Application entry point + DI configuration
 ├── docs/                       # Documentation
 ├── Dockerfile                  # Docker configuration
 ├── docker-compose.yml          # Docker Compose setup
 └── README.md                   # This file
 ```
+
+### Regenerating API Client
+
+The Bitbucket API client is generated from the official OpenAPI specification using Microsoft Kiota. To regenerate after API updates:
+
+1. **Restore tools**:
+   ```bash
+   dotnet tool restore
+   ```
+
+2. **Run generation script**:
+   ```bash
+   # Windows
+   .\scripts\generate-client.bat
+   
+   # Linux/Mac with PowerShell
+   pwsh ./scripts/generate-client.ps1
+   ```
+
+3. **Verify changes**:
+   ```bash
+   dotnet build
+   ```
+
+The script will:
+- Download the latest OpenAPI spec from Bitbucket
+- Clean the `src/BitbucketMCP/Generated/` directory
+- Generate a fresh API client with all models and request builders
+- Output generation summary
 
 ### Adding New Tools
 
@@ -283,22 +342,31 @@ BitbucketMCP/
 2. Add `[McpServerToolType]` attribute to the class
 3. Create methods with `[McpServerTool]` attribute
 4. Add parameter descriptions with `[Description]` attribute
-5. Implement business logic using `BitbucketApiClient`
+5. Implement business logic using `BitbucketApiClient` (wrapper) or direct Kiota client access
 
 Example:
 ```csharp
 [McpServerToolType]
-public class MyCustomTool
+public class MyCustomTool(BitbucketApiClient apiClient)
 {
-    [McpServerTool, Description("Does something useful")]
+    [McpServerTool(Name = "my_custom_tool")]
+    [Description("Does something useful with pull requests")]
     public async Task<string> DoSomething(
-        [Description("Input parameter")] string input)
+        [Description("The workspace slug")] string workspace,
+        [Description("The repository slug")] string repo)
     {
-        // Implementation
-        return "Result";
+        var prs = await apiClient.ListPullRequests(workspace, repo);
+        return $"Found {prs.Count} pull requests";
     }
 }
 ```
+
+### Architecture Notes
+
+- **Kiota Client**: The `Generated/` folder contains auto-generated code from Bitbucket OpenAPI spec
+- **Wrapper Pattern**: `BitbucketApiClient` wraps the Kiota client to maintain consistent method signatures for MCP Tools
+- **Authentication**: Custom authentication providers (`BasicAuthenticationProvider`, `BearerTokenAuthenticationProvider`) handle both auth methods
+- **DI Setup**: Program.cs configures Kiota RequestAdapter, HttpClient, and authentication in the dependency injection container
 
 ## Contributing
 
@@ -317,6 +385,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgments
 
 - Built with [Model Context Protocol C# SDK](https://github.com/modelcontextprotocol/csharp-sdk)
+- API client generated with [Microsoft Kiota](https://github.com/microsoft/kiota)
 - Powered by [Bitbucket Cloud REST API v2.0](https://developer.atlassian.com/cloud/bitbucket/rest/)
 - Uses [.NET 10](https://dot.net)
 
