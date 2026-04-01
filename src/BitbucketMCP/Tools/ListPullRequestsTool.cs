@@ -1,11 +1,12 @@
 using System.ComponentModel;
-using BitbucketMCP.Services;
 using ModelContextProtocol.Server;
+using KiotaClient = BitbucketMCP.Generated.BitbucketApiClient;
+using GetStateQueryParameterType = BitbucketMCP.Generated.Repositories.Item.Item.Pullrequests.GetStateQueryParameterType;
 
 namespace BitbucketMCP.Tools;
 
 [McpServerToolType]
-public class ListPullRequestsTool(BitbucketApiClient apiClient)
+public class ListPullRequestsTool(KiotaClient client)
 {
     [McpServerTool(Name = "list_pull_requests")]
     [Description("Lists pull requests in a Bitbucket repository with optional filtering")]
@@ -16,23 +17,33 @@ public class ListPullRequestsTool(BitbucketApiClient apiClient)
     {
         try
         {
-            var result = await apiClient.ListPullRequests(workspace, repo, state);
+            var result = await client.Repositories[workspace][repo].Pullrequests.GetAsync(config =>
+            {
+                if (!string.IsNullOrEmpty(state))
+                {
+                    // Try to parse state to enum
+                    if (Enum.TryParse<GetStateQueryParameterType>(state, true, out var stateEnum))
+                    {
+                        config.QueryParameters.StateAsGetStateQueryParameterType = stateEnum;
+                    }
+                }
+            });
 
-            if (!result.Any())
+            if (result?.Values == null || !result.Values.Any())
             {
                 return $"📋 No pull requests found" + (state != null ? $" with state: {state}" : "");
             }
 
             var output = $"📋 Pull Requests in {workspace}/{repo}" + (state != null ? $" (State: {state})" : "") + $"\n\n";
-            output += $"Total: {result.Count}\n\n";
+            output += $"Total: {result.Values.Count}\n\n";
 
-            foreach (var pr in result)
+            foreach (var pr in result.Values.Where(pr => pr != null))
             {
-                output += $"PR #{pr.Id}: {pr.Title}\n";
+                output += $"PR #{pr!.Id}: {pr.Title}\n";
                 output += $"  State: {pr.State}\n";
-                output += $"  Created: {pr.CreatedOn}\n";
-                output += $"  Comments: {pr.CommentCount}, Tasks: {pr.TaskCount}\n";
-                output += $"  URL: {pr.Url}\n\n";
+                output += $"  Created: {pr.CreatedOn?.ToString("O") ?? "N/A"}\n";
+                output += $"  Comments: {pr.CommentCount ?? 0}, Tasks: {pr.TaskCount ?? 0}\n";
+                output += $"  URL: {pr.Links?.Html?.Href ?? "N/A"}\n\n";
             }
 
             return output;
