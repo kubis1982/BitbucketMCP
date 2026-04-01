@@ -1,0 +1,41 @@
+services:
+  bitbucket-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bitbucket-mcp-server
+    environment:
+      # Authentication type: app_password or oauth_token
+      BITBUCKET_AUTH_TYPE: "app_password"
+      
+      # For app_password authentication:
+      BITBUCKET_USERNAME: "your-username"
+      BITBUCKET_APP_PASSWORD: "your-app-password"
+      
+      # For oauth_token authentication (comment out app_password vars if using this):
+      # BITBUCKET_TOKEN: "your-oauth-token"
+      
+      # Optional: Default workspace
+      # BITBUCKET_WORKSPACE: "your-workspace"
+      
+      # Optional: Logging level (Trace, Debug, Information, Warning, Error)
+      # LOG_LEVEL: "Information"
+    
+    # MCP uses stdio, so we need interactive mode
+    stdin_open: true
+    tty: true
+    
+    restart: unless-stopped
+
+# Example with OAuth token:
+#  bitbucket-mcp-oauth:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#    container_name: bitbucket-mcp-oauth
+#    environment:
+#      BITBUCKET_AUTH_TYPE: "oauth_token"
+#      BITBUCKET_TOKEN: "your-oauth-bearer-token"
+#    stdin_open: true
+#    tty: true
+#    restart: unless-stopped
