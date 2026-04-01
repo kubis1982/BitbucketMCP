@@ -89,16 +89,16 @@ jobs:
           git checkout -b $BRANCH_NAME
           echo "✅ Created branch: $BRANCH_NAME"
 
-      - name: Update version in Directory.Build.props
+      - name: Update version in BitbucketMCP.csproj
         run: |
           VERSION="${{ needs.validate-version.outputs.version }}"
-          sed -i "s/<Version>.*<\/Version>/<Version>$VERSION<\/Version>/" Directory.Build.props
-          echo "✅ Updated version to $VERSION in Directory.Build.props"
+          sed -i "s/<Version>.*<\/Version>/<Version>$VERSION<\/Version>/" BitbucketMCP.csproj
+          echo "✅ Updated version to $VERSION in BitbucketMCP.csproj"
 
       - name: Commit version update
         run: |
           VERSION="${{ needs.validate-version.outputs.version }}"
-          git add Directory.Build.props
+          git add BitbucketMCP.csproj
           git commit -m "chore: bump version to $VERSION"
           git push origin release/v$VERSION
           echo "✅ Committed and pushed version update"
