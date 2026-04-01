@@ -1,12 +1,12 @@
-using System.ComponentModel;
+using BitbucketMCP.Generated;
+using BitbucketMCP.Generated.Repositories.Item.Item.Pullrequests;
 using ModelContextProtocol.Server;
-using KiotaClient = BitbucketMCP.Generated.BitbucketApiClient;
-using GetStateQueryParameterType = BitbucketMCP.Generated.Repositories.Item.Item.Pullrequests.GetStateQueryParameterType;
+using System.ComponentModel;
 
 namespace BitbucketMCP.Tools;
 
 [McpServerToolType]
-public class ListPullRequestsTool(KiotaClient client)
+public class ListPullRequestsTool(BitbucketApiClient client)
 {
     [McpServerTool(Name = "list_pull_requests")]
     [Description("Lists pull requests in a Bitbucket repository with optional filtering")]

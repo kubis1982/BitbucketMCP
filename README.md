@@ -297,15 +297,15 @@ BitbucketMCP/
 │   └── BitbucketMCP/
 │       ├── Configuration/      # Configuration models
 │       ├── Generated/          # Kiota-generated API client (auto-generated)
-│       ├── Models/             # MCP data models
-│       ├── Services/           # BitbucketApiClient wrapper + Auth providers
 │       ├── Tools/              # MCP tool implementations
-│       └── Program.cs          # Application entry point + DI configuration
+│       └── Program.cs          # Application entry point + DI + inline auth providers
 ├── docs/                       # Documentation
 ├── Dockerfile                  # Docker configuration
 ├── docker-compose.yml          # Docker Compose setup
 └── README.md                   # This file
 ```
+
+**Note**: The `Services/` and `Models/` folders have been removed. Tools now use the Kiota-generated client and models directly, eliminating the abstraction layer.
 
 ### Regenerating API Client
 
@@ -342,12 +342,14 @@ The script will:
 2. Add `[McpServerToolType]` attribute to the class
 3. Create methods with `[McpServerTool]` attribute
 4. Add parameter descriptions with `[Description]` attribute
-5. Implement business logic using `BitbucketApiClient` (wrapper) or direct Kiota client access
+5. Use the Kiota-generated client directly (injected via constructor)
 
 Example:
 ```csharp
+using KiotaClient = BitbucketMCP.Generated.BitbucketApiClient;
+
 [McpServerToolType]
-public class MyCustomTool(BitbucketApiClient apiClient)
+public class MyCustomTool(KiotaClient client)
 {
     [McpServerTool(Name = "my_custom_tool")]
     [Description("Does something useful with pull requests")]
@@ -355,18 +357,19 @@ public class MyCustomTool(BitbucketApiClient apiClient)
         [Description("The workspace slug")] string workspace,
         [Description("The repository slug")] string repo)
     {
-        var prs = await apiClient.ListPullRequests(workspace, repo);
-        return $"Found {prs.Count} pull requests";
+        var prs = await client.Repositories[workspace][repo].Pullrequests.GetAsync();
+        return $"Found {prs?.Values?.Count ?? 0} pull requests";
     }
 }
 ```
 
 ### Architecture Notes
 
-- **Kiota Client**: The `Generated/` folder contains auto-generated code from Bitbucket OpenAPI spec
-- **Wrapper Pattern**: `BitbucketApiClient` wraps the Kiota client to maintain consistent method signatures for MCP Tools
-- **Authentication**: Custom authentication providers (`BasicAuthenticationProvider`, `BearerTokenAuthenticationProvider`) handle both auth methods
-- **DI Setup**: Program.cs configures Kiota RequestAdapter, HttpClient, and authentication in the dependency injection container
+- **Direct Kiota Usage**: Tools use the `Generated/BitbucketApiClient` directly without any wrapper layer
+- **No Model Mapping**: Tools work with Kiota-generated models (`Pullrequest`, `Account`, etc.) and format output as needed
+- **Inline Authentication**: Custom authentication providers are defined as file-scoped classes in `Program.cs`
+- **Simplified DI**: `Program.cs` registers only the Kiota client and authentication; Tools receive the client via constructor injection
+- **Type Safety**: Full IntelliSense and compile-time checking for all API operations
 
 ## Contributing
 

@@ -1,11 +1,11 @@
-using System.ComponentModel;
+using BitbucketMCP.Generated;
 using ModelContextProtocol.Server;
-using KiotaClient = BitbucketMCP.Generated.BitbucketApiClient;
+using System.ComponentModel;
 
 namespace BitbucketMCP.Tools;
 
 [McpServerToolType]
-public class GetPullRequestTool(KiotaClient client)
+public class GetPullRequestTool(BitbucketApiClient client)
 {
     [McpServerTool(Name = "get_pull_request")]
     [Description("Retrieves details of a specific pull request from a Bitbucket repository")]

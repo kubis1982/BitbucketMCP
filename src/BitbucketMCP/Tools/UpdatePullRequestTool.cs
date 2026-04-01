@@ -1,12 +1,12 @@
-using System.ComponentModel;
+using BitbucketMCP.Generated;
+using BitbucketMCP.Generated.Models;
 using ModelContextProtocol.Server;
-using KiotaClient = BitbucketMCP.Generated.BitbucketApiClient;
-using KiotaModels = BitbucketMCP.Generated.Models;
+using System.ComponentModel;
 
 namespace BitbucketMCP.Tools;
 
 [McpServerToolType]
-public class UpdatePullRequestTool(KiotaClient client)
+public class UpdatePullRequestTool(BitbucketApiClient client)
 {
     [McpServerTool(Name = "update_pull_request")]
     [Description("Updates an existing pull request in a Bitbucket repository")]
@@ -33,7 +33,7 @@ public class UpdatePullRequestTool(KiotaClient client)
 
             if (description is not null)
             {
-                current.Summary = new KiotaModels.Pullrequest_summary
+                current.Summary = new Pullrequest_summary
                 {
                     Raw = description
                 };
@@ -41,7 +41,7 @@ public class UpdatePullRequestTool(KiotaClient client)
 
             if (reviewers is not null)
             {
-                current.Reviewers = reviewers.Select(uuid => new KiotaModels.Account
+                current.Reviewers = reviewers.Select(uuid => new Account
                 {
                     Uuid = uuid
                 }).ToList();

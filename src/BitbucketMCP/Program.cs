@@ -1,13 +1,11 @@
 using BitbucketMCP.Configuration;
+using BitbucketMCP.Generated;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Kiota.Abstractions;
 using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Kiota.Http.HttpClientLibrary;
-using ModelContextProtocol.Server;
 using System.Text;
-using KiotaClient = BitbucketMCP.Generated.BitbucketApiClient;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -71,10 +69,10 @@ builder.Services.AddSingleton(sp =>
 });
 
 // Register Kiota BitbucketApiClient (used directly by Tools)
-builder.Services.AddSingleton<KiotaClient>(sp =>
+builder.Services.AddSingleton<BitbucketApiClient>(sp =>
 {
     var requestAdapter = sp.GetRequiredService<HttpClientRequestAdapter>();
-    return new KiotaClient(requestAdapter);
+    return new BitbucketApiClient(requestAdapter);
 });
 
 builder.Services.AddMcpServer()
@@ -88,16 +86,10 @@ await builder.Build().RunAsync();
 /// <summary>
 /// Authentication provider for Basic Authentication (App Password)
 /// </summary>
-file class BasicAuthProvider : IAuthenticationProvider
+file class BasicAuthProvider(string username, string appPassword) : IAuthenticationProvider
 {
-    private readonly string _username;
-    private readonly string _appPassword;
-
-    public BasicAuthProvider(string username, string appPassword)
-    {
-        _username = username ?? throw new ArgumentNullException(nameof(username));
-        _appPassword = appPassword ?? throw new ArgumentNullException(nameof(appPassword));
-    }
+    private readonly string _username = username ?? throw new ArgumentNullException(nameof(username));
+    private readonly string _appPassword = appPassword ?? throw new ArgumentNullException(nameof(appPassword));
 
     public Task AuthenticateRequestAsync(RequestInformation request, Dictionary<string, object>? additionalAuthenticationContext = null, CancellationToken cancellationToken = default)
     {
@@ -110,14 +102,9 @@ file class BasicAuthProvider : IAuthenticationProvider
 /// <summary>
 /// Authentication provider for Bearer Token (OAuth)
 /// </summary>
-file class BearerTokenAuthProvider : IAuthenticationProvider
+file class BearerTokenAuthProvider(string token) : IAuthenticationProvider
 {
-    private readonly string _token;
-
-    public BearerTokenAuthProvider(string token)
-    {
-        _token = token ?? throw new ArgumentNullException(nameof(token));
-    }
+    private readonly string _token = token ?? throw new ArgumentNullException(nameof(token));
 
     public Task AuthenticateRequestAsync(RequestInformation request, Dictionary<string, object>? additionalAuthenticationContext = null, CancellationToken cancellationToken = default)
     {
