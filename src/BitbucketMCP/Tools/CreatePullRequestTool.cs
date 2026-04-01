@@ -1,7 +1,6 @@
 using BitbucketMCP.Generated;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
-using KiotaModels = BitbucketMCP.Generated.Models;
 
 namespace BitbucketMCP.Tools;
 

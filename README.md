@@ -169,20 +169,20 @@ The server exposes the following MCP tools:
 Creates a new pull request in a Bitbucket repository.
 
 **Parameters**:
-- `workspace` (required): Workspace ID or slug
-- `repository` (required): Repository name
+- `workspace` (required): Workspace slug
+- `repo` (required): Repository slug
 - `title` (required): PR title
-- `description`: PR description
+- `description` (optional): PR description
 - `sourceBranch` (required): Source branch name
-- `destinationBranch` (required): Destination branch name (default: main)
-- `reviewers`: Array of reviewer account IDs
-- `isDraft`: Create as draft PR (default: false)
+- `destinationBranch` (required): Destination branch name
+- `reviewers` (optional): Array of reviewer account UUIDs in format `{account-id}`
+- `isDraft` (optional): Create as draft PR (default: false)
 
 **Example**:
 ```json
 {
   "workspace": "myworkspace",
-  "repository": "myrepo",
+  "repo": "myrepo",
   "title": "Add new feature",
   "description": "This PR adds amazing new features",
   "sourceBranch": "feature/new-feature",
@@ -197,20 +197,20 @@ Creates a new pull request in a Bitbucket repository.
 Updates an existing pull request.
 
 **Parameters**:
-- `workspace` (required): Workspace ID or slug
-- `repository` (required): Repository name
-- `pullRequestId` (required): PR ID number
-- `title`: New PR title
-- `description`: New PR description
-- `reviewers`: Updated array of reviewer account IDs
-- `isDraft`: Change draft status
+- `workspace` (required): Workspace slug
+- `repo` (required): Repository slug
+- `prId` (required): PR ID number
+- `title` (optional): New PR title
+- `description` (optional): New PR description
+- `reviewers` (optional): Updated array of reviewer account UUIDs
+- `isDraft` (optional): Change draft status
 
 **Example**:
 ```json
 {
   "workspace": "myworkspace",
-  "repository": "myrepo",
-  "pullRequestId": 123,
+  "repo": "myrepo",
+  "prId": 123,
   "title": "Updated title",
   "description": "Updated description"
 }
@@ -221,16 +221,16 @@ Updates an existing pull request.
 Retrieves details of a pull request.
 
 **Parameters**:
-- `workspace` (required): Workspace ID or slug
-- `repository` (required): Repository name
-- `pullRequestId` (required): PR ID number
+- `workspace` (required): Workspace slug
+- `repo` (required): Repository slug
+- `prId` (required): PR ID number
 
 **Example**:
 ```json
 {
   "workspace": "myworkspace",
-  "repository": "myrepo",
-  "pullRequestId": 123
+  "repo": "myrepo",
+  "prId": 123
 }
 ```
 
@@ -239,15 +239,15 @@ Retrieves details of a pull request.
 Lists pull requests in a repository with optional state filtering.
 
 **Parameters**:
-- `workspace` (required): Workspace ID or slug
-- `repository` (required): Repository name
-- `state` (optional): Filter by state - `OPEN`, `MERGED`, `DECLINED`, `SUPERSEDED` (defaults to `OPEN`)
+- `workspace` (required): Workspace slug
+- `repo` (required): Repository slug
+- `state` (optional): Filter by state - `OPEN`, `MERGED`, `DECLINED`, `SUPERSEDED` (if not specified, defaults to `OPEN`)
 
 **Example**:
 ```json
 {
   "workspace": "myworkspace",
-  "repository": "myrepo",
+  "repo": "myrepo",
   "state": "OPEN"
 }
 ```
@@ -288,8 +288,10 @@ dotnet publish -c Release -o ./publish
 # Build the Docker image
 docker build -t bitbucket-mcp:latest .
 
-# Run the container
-docker run -it --rm \
+# Run the container with port mapping for HTTP/SSE
+docker run -d --rm \
+  -p 8080:8080 \
+  -e ASPNETCORE_URLS="http://+:8080" \
   -e BITBUCKET_AUTH_TYPE=app_password \
   -e BITBUCKET_USERNAME=your-username \
   -e BITBUCKET_APP_PASSWORD=your-password \
@@ -322,10 +324,12 @@ docker run -it --rm \
 **Problem**: MCP client cannot communicate with server
 
 **Solution**:
-- Verify server is running with stdio transport
-- Check logs output to stderr for error messages
-- Ensure no other process is writing to stdout/stderr
-- Validate JSON-RPC message format
+- Verify server is running and listening on correct port (5000 local, 8080 Docker)
+- Ensure MCP client is configured with correct HTTP endpoint URL
+- Check that client is sending `Accept: text/event-stream` header
+- Verify firewall allows connections on the server port
+- Check server logs for error messages (use `docker logs` or console output)
+- Validate JSON-RPC message format in MCP protocol communication
 
 ## Development
 
@@ -393,10 +397,12 @@ The script will:
 
 Example:
 ```csharp
-using KiotaClient = BitbucketMCP.Generated.BitbucketApiClient;
+using BitbucketMCP.Generated;
+using ModelContextProtocol.Server;
+using System.ComponentModel;
 
 [McpServerToolType]
-public class MyCustomTool(KiotaClient client)
+public class MyCustomTool(BitbucketApiClient client)
 {
     [McpServerTool(Name = "my_custom_tool")]
     [Description("Does something useful with pull requests")]
