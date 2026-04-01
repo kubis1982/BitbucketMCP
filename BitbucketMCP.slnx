@@ -1,9 +1,14 @@
 <Solution>
   <Folder Name="/solution items/">
     <File Path=".github/workflows/release.yml" />
+    <File Path=".gitignore" />
     <File Path="docker-compose.yml" />
     <File Path="Dockerfile" />
     <File Path="README.md" />
+  </Folder>
+  <Folder Name="/solution items/scripts/">
+    <File Path="scripts/generate-client.bat" />
+    <File Path="scripts/generate-client.ps1" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/BitbucketMCP/BitbucketMCP.csproj" />
