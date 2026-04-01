@@ -9,14 +9,14 @@ services:
       BITBUCKET_AUTH_TYPE: "app_password"
       
       # For app_password authentication:
-      BITBUCKET_USERNAME: "your-username"
-      BITBUCKET_APP_PASSWORD: "your-app-password"
+      BITBUCKET_USERNAME: "m.swiatnicki@7technology.pl"
+      BITBUCKET_APP_PASSWORD: "ATATT3xFfGF0EgtCz1A29l6d-7kJHbiGKZq0bldW5Toz94DzR-C8IXY_heQ79lX3pvNzXPizuGnj792WD1zzXBh4wvsybg8VSPVDTlDtnvxLWoBOQTfQXXFx8wU5vR4xf_kDLyhGNb3ivgh0YwikDmdTxXVMcEtDAXqoWZkZSUvjzQppy4zmbgU=24260A73"
       
       # For oauth_token authentication (comment out app_password vars if using this):
       # BITBUCKET_TOKEN: "your-oauth-token"
       
       # Optional: Default workspace
-      # BITBUCKET_WORKSPACE: "your-workspace"
+      BITBUCKET_WORKSPACE: "7t-dev"
       
       # Optional: Logging level (Trace, Debug, Information, Warning, Error)
       # LOG_LEVEL: "Information"
@@ -28,14 +28,14 @@ services:
     restart: unless-stopped
 
 # Example with OAuth token:
-#  bitbucket-mcp-oauth:
-#    build:
-#      context: .
-#      dockerfile: Dockerfile
-#    container_name: bitbucket-mcp-oauth
-#    environment:
-#      BITBUCKET_AUTH_TYPE: "oauth_token"
-#      BITBUCKET_TOKEN: "your-oauth-bearer-token"
-#    stdin_open: true
-#    tty: true
-#    restart: unless-stopped
+ # bitbucket-mcp-oauth:
+ #   build:
+ #     context: .
+ #     dockerfile: Dockerfile
+ #   container_name: bitbucket-mcp-oauth
+ #   environment:
+ #     BITBUCKET_AUTH_TYPE: "oauth_token"
+ #     BITBUCKET_TOKEN: "ATATT3xFfGF0gtmsYwmMpBwIV5fhg1KCz_jqERHRwQ2QjC_Xtwwq9dvMMwjHAwmgOvg61Mo96HMq70ZYqNOLD8Fbn5C7fKNyDXWZJyTWj1_4OratDxUc6MBdYnMLA7hjDqbspKsI3M8H9F0GrIcsy_AwrnTMPqz3TRVqfmYg3PL1Yj-goSc-mKo=72FC14D8"
+ #   stdin_open: true
+ #   tty: true
+ #   restart: unless-stopped
