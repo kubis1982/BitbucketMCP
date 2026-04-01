@@ -1,0 +1,12 @@
+.git
+.gitignore
+.vs
+.vscode
+*.user
+*.suo
+bin
+obj
+LICENSE
+README.md
+*.md
+docs
