@@ -4,7 +4,12 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: bitbucket-mcp-server
+    ports:
+      - "8080:8080"
     environment:
+      # ASP.NET Core Configuration
+      ASPNETCORE_URLS: "http://+:8080"
+      
       # Authentication type: app_password or oauth_token
       BITBUCKET_AUTH_TYPE: "app_password"
       
@@ -19,11 +24,7 @@ services:
       BITBUCKET_WORKSPACE: ""
       
       # Optional: Logging level (Trace, Debug, Information, Warning, Error)
-      # LOG_LEVEL: "Information"
-    
-    # MCP uses stdio, so we need interactive mode
-    stdin_open: true
-    tty: true
+      # ASPNETCORE_LOGGING__LOGLEVEL__DEFAULT: "Information"
     
     restart: unless-stopped
 
@@ -33,9 +34,10 @@ services:
  #     context: .
  #     dockerfile: Dockerfile
  #   container_name: bitbucket-mcp-oauth
+ #   ports:
+ #     - "8081:8080"
  #   environment:
+ #     ASPNETCORE_URLS: "http://+:8080"
  #     BITBUCKET_AUTH_TYPE: "oauth_token"
  #     BITBUCKET_TOKEN: ""
- #   stdin_open: true
- #   tty: true
  #   restart: unless-stopped
