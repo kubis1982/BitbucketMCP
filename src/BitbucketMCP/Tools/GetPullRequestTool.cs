@@ -7,7 +7,8 @@ namespace BitbucketMCP.Tools;
 [McpServerToolType]
 public class GetPullRequestTool(BitbucketApiClient apiClient)
 {
-    [McpServerTool("get_pull_request", "Retrieves details of a specific pull request from a Bitbucket repository")]
+    [McpServerTool(Name = "get_pull_request")]
+    [Description("Retrieves details of a specific pull request from a Bitbucket repository")]
     public async Task<string> GetPullRequest(
         [Description("The workspace slug (e.g., 'myworkspace')")] string workspace,
         [Description("The repository slug (e.g., 'myrepo')")] string repo,

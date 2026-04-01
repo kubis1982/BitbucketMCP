@@ -8,7 +8,8 @@ namespace BitbucketMCP.Tools;
 [McpServerToolType]
 public class UpdatePullRequestTool(BitbucketApiClient apiClient)
 {
-    [McpServerTool("update_pull_request", "Updates an existing pull request in a Bitbucket repository")]
+    [McpServerTool(Name = "update_pull_request")]
+    [Description("Updates an existing pull request in a Bitbucket repository")]
     public async Task<string> UpdatePullRequest(
         [Description("The workspace slug (e.g., 'myworkspace')")] string workspace,
         [Description("The repository slug (e.g., 'myrepo')")] string repo,

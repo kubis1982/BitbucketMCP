@@ -8,7 +8,8 @@ namespace BitbucketMCP.Tools;
 [McpServerToolType]
 public class CreatePullRequestTool(BitbucketApiClient apiClient)
 {
-    [McpServerTool("create_pull_request", "Creates a new pull request in a Bitbucket repository")]
+    [McpServerTool(Name = "create_pull_request")]
+    [Description("Creates a new pull request in a Bitbucket repository")]
     public async Task<string> CreatePullRequest(
         [Description("The workspace slug (e.g., 'myworkspace')")] string workspace,
         [Description("The repository slug (e.g., 'myrepo')")] string repo,
