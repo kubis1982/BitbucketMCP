@@ -10,7 +10,7 @@ services:
       
       # For app_password authentication:
       BITBUCKET_USERNAME: ""
-      BITBUCKET_APP_PASSWORD: "ATATT3xFfGF0EgtCz1A29l6d-7kJHbiGKZq0bldW5Toz94DzR-C8IXY_heQ79lX3pvNzXPizuGnj792WD1zzXBh4wvsybg8VSPVDTlDtnvxLWoBOQTfQXXFx8wU5vR4xf_kDLyhGNb3ivgh0YwikDmdTxXVMcEtDAXqoWZkZSUvjzQppy4zmbgU=24260A73"
+      BITBUCKET_APP_PASSWORD: ""
       
       # For oauth_token authentication (comment out app_password vars if using this):
       # BITBUCKET_TOKEN: "your-oauth-token"

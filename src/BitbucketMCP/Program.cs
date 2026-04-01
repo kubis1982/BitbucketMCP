@@ -70,6 +70,7 @@ builder.Services.AddSingleton<BitbucketApiClient>(sp =>
 
 // Configure MCP Server with HTTP/SSE transport
 builder.Services.AddMcpServer()
+    .WithHttpTransport()
     .WithToolsFromAssembly();
 
 var app = builder.Build();
