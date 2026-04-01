@@ -20,7 +20,7 @@ FROM mcr.microsoft.com/dotnet/runtime:10.0 AS final
 WORKDIR /app
 
 # Create non-root user
-RUN useradd -m -u 1000 mcpuser && chown -R mcpuser:mcpuser /app
+RUN groupadd -r mcpuser && useradd -r -g mcpuser mcpuser && chown -R mcpuser:mcpuser /app
 USER mcpuser
 
 # Copy published app

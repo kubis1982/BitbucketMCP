@@ -1,4 +1,4 @@
-﻿using BitbucketMCP.Configuration;
+using BitbucketMCP.Configuration;
 using BitbucketMCP.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -45,12 +45,7 @@ builder.Services.AddHttpClient<BitbucketApiClient>(client =>
 });
 
 // Register BitbucketApiClient as singleton
-builder.Services.AddSingleton<BitbucketApiClient>(sp =>
-{
-    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-    var httpClient = httpClientFactory.CreateClient(nameof(BitbucketApiClient));
-    return new BitbucketApiClient(httpClient, config);
-});
+builder.Services.AddSingleton<BitbucketApiClient>();
 
 builder.Services.AddMcpServer()
     .WithStdioServerTransport()
