@@ -4,7 +4,7 @@ A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Clou
 
 ## Features
 
-- **MCP Protocol Support**: Full implementation of Model Context Protocol over stdio transport
+- **MCP Protocol Support**: Full implementation of Model Context Protocol over **HTTP/SSE transport** (Streamable HTTP)
 - **Pull Request Management**: 
   - Create pull requests with customizable settings
   - Update PR title, description, and reviewers
@@ -14,7 +14,7 @@ A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Clou
 - **Kiota-Generated Client**: Type-safe API client auto-generated from Bitbucket OpenAPI specification
 - **Flexible Authentication**: Support for both Bitbucket app passwords and OAuth 2.0 tokens
 - **Docker Support**: Ready-to-use Docker container with multi-stage build
-- **Modern .NET**: Built on .NET 10 with latest SDK patterns
+- **Modern .NET**: Built on .NET 10 with ASP.NET Core for HTTP transport
 
 ## Prerequisites
 
@@ -39,6 +39,7 @@ A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Clou
    For app password authentication:
    ```yaml
    environment:
+     ASPNETCORE_URLS: "http://+:8080"
      BITBUCKET_AUTH_TYPE: "app_password"
      BITBUCKET_USERNAME: "your-username"
      BITBUCKET_APP_PASSWORD: "your-app-password"
@@ -47,6 +48,7 @@ A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Clou
    For OAuth token authentication:
    ```yaml
    environment:
+     ASPNETCORE_URLS: "http://+:8080"
      BITBUCKET_AUTH_TYPE: "oauth_token"
      BITBUCKET_TOKEN: "your-oauth-token"
    ```
@@ -54,6 +56,14 @@ A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Clou
 3. **Run the server**:
    ```bash
    docker-compose up -d
+   ```
+   
+   The server will be available at: **http://localhost:8080**
+
+4. **Test the connection**:
+   ```bash
+   # Test with MCP-compatible client (requires Accept: text/event-stream header)
+   curl -H "Accept: text/event-stream" http://localhost:8080/
    ```
 
 ### Local Development
@@ -66,11 +76,13 @@ A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Clou
 2. **Set environment variables**:
    ```bash
    # Windows (PowerShell)
+   $env:ASPNETCORE_URLS="http://localhost:5000"
    $env:BITBUCKET_AUTH_TYPE="app_password"
    $env:BITBUCKET_USERNAME="your-username"
    $env:BITBUCKET_APP_PASSWORD="your-app-password"
    
    # Linux/Mac
+   export ASPNETCORE_URLS=http://localhost:5000
    export BITBUCKET_AUTH_TYPE=app_password
    export BITBUCKET_USERNAME=your-username
    export BITBUCKET_APP_PASSWORD=your-app-password
@@ -80,6 +92,8 @@ A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Clou
    ```bash
    dotnet run --project src/BitbucketMCP
    ```
+   
+   The server will be available at: **http://localhost:5000**
 
 ## Configuration
 
@@ -87,12 +101,45 @@ A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Clou
 
 | Variable | Required | Description |
 |----------|----------|-------------|
+| `ASPNETCORE_URLS` | No | Server listening URL (default: http://localhost:5000, Docker: http://+:8080) |
 | `BITBUCKET_AUTH_TYPE` | Yes | Authentication method: `app_password` or `oauth_token` |
 | `BITBUCKET_USERNAME` | Conditional | Required for `app_password` auth |
 | `BITBUCKET_APP_PASSWORD` | Conditional | Required for `app_password` auth |
 | `BITBUCKET_TOKEN` | Conditional | Required for `oauth_token` auth |
 | `BITBUCKET_WORKSPACE` | No | Default workspace for operations |
-| `LOG_LEVEL` | No | Logging level (Trace, Debug, Information, Warning, Error) |
+| `ASPNETCORE_LOGGING__LOGLEVEL__DEFAULT` | No | Logging level (Trace, Debug, Information, Warning, Error) |
+
+### MCP Connection
+
+The server uses **HTTP/SSE (Server-Sent Events)** transport, implementing the Model Context Protocol's Streamable HTTP specification.
+
+**Connection Details**:
+- **Local Development**: `http://localhost:5000`
+- **Docker Deployment**: `http://localhost:8080`
+- **Protocol**: MCP over HTTP with Server-Sent Events
+- **Required Headers**: `Accept: text/event-stream`
+
+**Example MCP Client Configuration** (Claude Desktop):
+```json
+{
+  "mcpServers": {
+    "bitbucket": {
+      "url": "http://localhost:8080/",
+      "transport": {
+        "type": "http"
+      }
+    }
+  }
+}
+```
+
+**Testing the endpoint**:
+```bash
+# The server expects MCP protocol headers
+curl -H "Accept: text/event-stream" http://localhost:8080/
+
+# For full MCP communication, use an MCP-compatible client
+```
 
 ### Authentication Setup
 
@@ -365,11 +412,13 @@ public class MyCustomTool(KiotaClient client)
 
 ### Architecture Notes
 
+- **HTTP/SSE Transport**: Server uses ASP.NET Core with Streamable HTTP transport (MCP SDK 1.2.0+)
 - **Direct Kiota Usage**: Tools use the `Generated/BitbucketApiClient` directly without any wrapper layer
 - **No Model Mapping**: Tools work with Kiota-generated models (`Pullrequest`, `Account`, etc.) and format output as needed
 - **Inline Authentication**: Custom authentication providers are defined as file-scoped classes in `Program.cs`
 - **Simplified DI**: `Program.cs` registers only the Kiota client and authentication; Tools receive the client via constructor injection
 - **Type Safety**: Full IntelliSense and compile-time checking for all API operations
+- **Docker Ready**: Uses `mcr.microsoft.com/dotnet/aspnet:10.0` runtime image with port 8080 exposed
 
 ## Contributing
 
