@@ -1,12 +1,12 @@
 using System.ComponentModel;
-using BitbucketMCP.Models;
-using BitbucketMCP.Services;
 using ModelContextProtocol.Server;
+using KiotaClient = BitbucketMCP.Generated.BitbucketApiClient;
+using KiotaModels = BitbucketMCP.Generated.Models;
 
 namespace BitbucketMCP.Tools;
 
 [McpServerToolType]
-public class UpdatePullRequestTool(BitbucketApiClient apiClient)
+public class UpdatePullRequestTool(KiotaClient client)
 {
     [McpServerTool(Name = "update_pull_request")]
     [Description("Updates an existing pull request in a Bitbucket repository")]
@@ -21,22 +21,47 @@ public class UpdatePullRequestTool(BitbucketApiClient apiClient)
     {
         try
         {
-            var request = new UpdatePullRequestRequest
-            {
-                Title = title,
-                Description = description,
-                Reviewers = reviewers,
-                IsDraft = isDraft
-            };
+            // GET current PR
+            var current = await client.Repositories[workspace][repo].Pullrequests[prId].GetAsync();
 
-            var result = await apiClient.UpdatePullRequest(workspace, repo, prId, request);
+            if (current == null)
+                return $"❌ Pull request {prId} not found";
+
+            // Modify only specified fields
+            if (!string.IsNullOrWhiteSpace(title))
+                current.Title = title;
+
+            if (description is not null)
+            {
+                current.Summary = new KiotaModels.Pullrequest_summary
+                {
+                    Raw = description
+                };
+            }
+
+            if (reviewers is not null)
+            {
+                current.Reviewers = reviewers.Select(uuid => new KiotaModels.Account
+                {
+                    Uuid = uuid
+                }).ToList();
+            }
+
+            if (isDraft.HasValue)
+                current.Draft = isDraft;
+
+            // PUT updated PR
+            var result = await client.Repositories[workspace][repo].Pullrequests[prId].PutAsync(current);
+
+            if (result == null)
+                return "❌ Failed to update pull request: No response from API";
 
             return $"✅ Pull request updated successfully!\n\n" +
                    $"ID: {result.Id}\n" +
                    $"Title: {result.Title}\n" +
                    $"State: {result.State}\n" +
-                   $"URL: {result.Url}\n" +
-                   $"Updated: {result.UpdatedOn}";
+                   $"URL: {result.Links?.Html?.Href ?? "N/A"}\n" +
+                   $"Updated: {result.UpdatedOn?.ToString("O") ?? "N/A"}";
         }
         catch (HttpRequestException ex)
         {
