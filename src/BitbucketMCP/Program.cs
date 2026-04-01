@@ -1,10 +1,10 @@
 using BitbucketMCP.Configuration;
+using BitbucketMCP.Generated;
 using Microsoft.Kiota.Abstractions;
 using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Kiota.Http.HttpClientLibrary;
 using ModelContextProtocol.Server;
 using System.Text;
-using KiotaClient = BitbucketMCP.Generated.BitbucketApiClient;
 
 var builder = WebApplication.CreateBuilder(args);
 
