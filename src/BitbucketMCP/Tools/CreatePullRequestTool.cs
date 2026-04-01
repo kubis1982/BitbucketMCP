@@ -1,12 +1,12 @@
 using System.ComponentModel;
-using BitbucketMCP.Models;
-using BitbucketMCP.Services;
 using ModelContextProtocol.Server;
+using KiotaClient = BitbucketMCP.Generated.BitbucketApiClient;
+using KiotaModels = BitbucketMCP.Generated.Models;
 
 namespace BitbucketMCP.Tools;
 
 [McpServerToolType]
-public class CreatePullRequestTool(BitbucketApiClient apiClient)
+public class CreatePullRequestTool(KiotaClient client)
 {
     [McpServerTool(Name = "create_pull_request")]
     [Description("Creates a new pull request in a Bitbucket repository")]
@@ -22,26 +22,53 @@ public class CreatePullRequestTool(BitbucketApiClient apiClient)
     {
         try
         {
-            var request = new PullRequestRequest
+            var pr = new KiotaModels.Pullrequest
             {
                 Title = title,
-                Description = isDraft && !string.IsNullOrEmpty(description) 
-                    ? $"[DRAFT] {description}" 
-                    : description ?? string.Empty,
-                SourceBranch = sourceBranch,
-                DestinationBranch = destinationBranch,
-                Reviewers = reviewers,
-                IsDraft = isDraft
+                Summary = new KiotaModels.Pullrequest_summary
+                {
+                    Raw = isDraft && !string.IsNullOrEmpty(description) 
+                        ? $"[DRAFT] {description}" 
+                        : description ?? string.Empty
+                },
+                Source = new KiotaModels.Pullrequest_endpoint
+                {
+                    Branch = new KiotaModels.Pullrequest_endpoint_branch
+                    {
+                        Name = sourceBranch
+                    }
+                },
+                Destination = new KiotaModels.Pullrequest_endpoint
+                {
+                    Branch = new KiotaModels.Pullrequest_endpoint_branch
+                    {
+                        Name = destinationBranch
+                    }
+                },
+                CloseSourceBranch = false,
+                Draft = isDraft
             };
 
-            var result = await apiClient.CreatePullRequest(workspace, repo, request);
+            // Add reviewers if specified
+            if (reviewers?.Any() == true)
+            {
+                pr.Reviewers = reviewers.Select(uuid => new KiotaModels.Account
+                {
+                    Uuid = uuid
+                }).ToList();
+            }
+
+            var result = await client.Repositories[workspace][repo].Pullrequests.PostAsync(pr);
+
+            if (result == null)
+                return "❌ Failed to create pull request: No response from API";
 
             return $"✅ Pull request created successfully!\n\n" +
                    $"ID: {result.Id}\n" +
                    $"Title: {result.Title}\n" +
                    $"State: {result.State}\n" +
-                   $"URL: {result.Url}\n" +
-                   $"Created: {result.CreatedOn}";
+                   $"URL: {result.Links?.Html?.Href ?? "N/A"}\n" +
+                   $"Created: {result.CreatedOn?.ToString("O") ?? "N/A"}";
         }
         catch (HttpRequestException ex)
         {
