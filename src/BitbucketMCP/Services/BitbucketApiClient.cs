@@ -111,6 +111,28 @@ public class BitbucketApiClient
         return MapToResponse(result);
     }
 
+    public async Task<List<PullRequestResponse>> ListPullRequests(
+        string workspace,
+        string repo,
+        string? state = null)
+    {
+        var result = await _client.Repositories[workspace][repo].Pullrequests.GetAsync(config =>
+        {
+            if (!string.IsNullOrEmpty(state))
+            {
+                config.QueryParameters.State = new[] { state };
+            }
+        });
+
+        if (result?.Values == null)
+            return new List<PullRequestResponse>();
+
+        return result.Values
+            .Where(pr => pr != null)
+            .Select(pr => MapToResponse(pr!))
+            .ToList();
+    }
+
     private PullRequestResponse MapToResponse(KiotaModels.Pullrequest? pr)
     {
         if (pr == null)
