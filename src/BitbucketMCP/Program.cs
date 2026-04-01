@@ -46,7 +46,7 @@ builder.Services.AddSingleton<IAuthenticationProvider>(sp =>
     
     return bitbucketConfig.AuthType switch
     {
-        "app_password" => new BasicAuthenticationProvider(
+        "app_password" => new BitbucketMCP.Services.BasicAuthenticationProvider(
             bitbucketConfig.Username!,
             bitbucketConfig.AppPassword!),
         "oauth_token" => new BearerTokenAuthenticationProvider(

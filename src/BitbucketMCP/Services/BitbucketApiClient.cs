@@ -2,6 +2,7 @@ using BitbucketMCP.Configuration;
 using BitbucketMCP.Models;
 using KiotaClient = BitbucketMCP.Generated.BitbucketApiClient;
 using KiotaModels = BitbucketMCP.Generated.Models;
+using GetStateQueryParameterType = BitbucketMCP.Generated.Repositories.Item.Item.Pullrequests.GetStateQueryParameterType;
 
 namespace BitbucketMCP.Services;
 
@@ -120,7 +121,11 @@ public class BitbucketApiClient
         {
             if (!string.IsNullOrEmpty(state))
             {
-                config.QueryParameters.State = new[] { state };
+                // Try to parse state to enum
+                if (Enum.TryParse<GetStateQueryParameterType>(state, true, out var stateEnum))
+                {
+                    config.QueryParameters.StateAsGetStateQueryParameterType = stateEnum;
+                }
             }
         });
 
