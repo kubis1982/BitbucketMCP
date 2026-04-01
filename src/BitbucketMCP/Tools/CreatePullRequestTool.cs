@@ -1,3 +1,4 @@
+using BitbucketMCP.Configuration;
 using BitbucketMCP.Generated;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
@@ -5,12 +6,11 @@ using System.ComponentModel;
 namespace BitbucketMCP.Tools;
 
 [McpServerToolType]
-public class CreatePullRequestTool(BitbucketApiClient client)
+public class CreatePullRequestTool(BitbucketApiClient client, BitbucketConfig config)
 {
     [McpServerTool(Name = "create_pull_request")]
     [Description("Creates a new pull request in a Bitbucket repository")]
     public async Task<string> CreatePullRequest(
-        [Description("The workspace slug (e.g., 'myworkspace')")] string workspace,
         [Description("The repository slug (e.g., 'myrepo')")] string repo,
         [Description("The title of the pull request")] string title,
         [Description("The description/body of the pull request")] string? description,
@@ -57,7 +57,7 @@ public class CreatePullRequestTool(BitbucketApiClient client)
                 }).ToList();
             }
 
-            var result = await client.Repositories[workspace][repo].Pullrequests.PostAsync(pr);
+            var result = await client.Repositories[config.Workspace][repo].Pullrequests.PostAsync(pr);
 
             if (result == null)
                 return "❌ Failed to create pull request: No response from API";

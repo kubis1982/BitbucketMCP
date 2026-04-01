@@ -1,3 +1,4 @@
+using BitbucketMCP.Configuration;
 using BitbucketMCP.Generated;
 using BitbucketMCP.Generated.Models;
 using ModelContextProtocol.Server;
@@ -6,12 +7,11 @@ using System.ComponentModel;
 namespace BitbucketMCP.Tools;
 
 [McpServerToolType]
-public class UpdatePullRequestTool(BitbucketApiClient client)
+public class UpdatePullRequestTool(BitbucketApiClient client, BitbucketConfig config)
 {
     [McpServerTool(Name = "update_pull_request")]
     [Description("Updates an existing pull request in a Bitbucket repository")]
     public async Task<string> UpdatePullRequest(
-        [Description("The workspace slug (e.g., 'myworkspace')")] string workspace,
         [Description("The repository slug (e.g., 'myrepo')")] string repo,
         [Description("The pull request ID number")] int prId,
         [Description("The new title for the pull request (optional)")] string? title = null,
@@ -22,7 +22,7 @@ public class UpdatePullRequestTool(BitbucketApiClient client)
         try
         {
             // GET current PR
-            var current = await client.Repositories[workspace][repo].Pullrequests[prId].GetAsync();
+            var current = await client.Repositories[config.Workspace][repo].Pullrequests[prId].GetAsync();
 
             if (current == null)
                 return $"❌ Pull request {prId} not found";

@@ -5,14 +5,8 @@ A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Clou
 ## Features
 
 - **MCP Protocol Support**: Full implementation of Model Context Protocol over **HTTP/SSE transport** (Streamable HTTP)
-- **Pull Request Management**: 
-  - Create pull requests with customizable settings
-  - Update PR title, description, and reviewers
-  - Toggle between open and draft status
-  - Retrieve PR details
-  - **NEW**: List pull requests with state filtering
 - **Kiota-Generated Client**: Type-safe API client auto-generated from Bitbucket OpenAPI specification
-- **Flexible Authentication**: Support for both Bitbucket app passwords and OAuth 2.0 tokens
+- **Bitbucket App Password Authentication**: Secure authentication using Bitbucket app passwords
 - **Docker Support**: Ready-to-use Docker container with multi-stage build
 - **Modern .NET**: Built on .NET 10 with ASP.NET Core for HTTP transport
 
@@ -21,8 +15,7 @@ A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Clou
 - Docker (for containerized deployment) OR
 - .NET 10 SDK (for local development)
 - Bitbucket Cloud account
-- Bitbucket app password or OAuth token
-- **For development**: Microsoft Kiota CLI tool (installed locally via dotnet tool)
+- Bitbucket app password (with pull request and repository read permissions)
 
 ## Quick Start
 
@@ -40,17 +33,9 @@ A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Clou
    ```yaml
    environment:
      ASPNETCORE_URLS: "http://+:8080"
-     BITBUCKET_AUTH_TYPE: "app_password"
      BITBUCKET_USERNAME: "your-username"
      BITBUCKET_APP_PASSWORD: "your-app-password"
-   ```
-   
-   For OAuth token authentication:
-   ```yaml
-   environment:
-     ASPNETCORE_URLS: "http://+:8080"
-     BITBUCKET_AUTH_TYPE: "oauth_token"
-     BITBUCKET_TOKEN: "your-oauth-token"
+     BITBUCKET_WORKSPACE: "your-workspace"
    ```
 
 3. **Run the server**:
@@ -77,15 +62,15 @@ A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Clou
    ```bash
    # Windows (PowerShell)
    $env:ASPNETCORE_URLS="http://localhost:5000"
-   $env:BITBUCKET_AUTH_TYPE="app_password"
    $env:BITBUCKET_USERNAME="your-username"
    $env:BITBUCKET_APP_PASSWORD="your-app-password"
+   $env:BITBUCKET_WORKSPACE="your-workspace"
    
    # Linux/Mac
    export ASPNETCORE_URLS=http://localhost:5000
-   export BITBUCKET_AUTH_TYPE=app_password
    export BITBUCKET_USERNAME=your-username
    export BITBUCKET_APP_PASSWORD=your-app-password
+   export BITBUCKET_WORKSPACE=your-workspace
    ```
 
 3. **Run the server**:
@@ -102,11 +87,9 @@ A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Clou
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `ASPNETCORE_URLS` | No | Server listening URL (default: http://localhost:5000, Docker: http://+:8080) |
-| `BITBUCKET_AUTH_TYPE` | Yes | Authentication method: `app_password` or `oauth_token` |
-| `BITBUCKET_USERNAME` | Conditional | Required for `app_password` auth |
-| `BITBUCKET_APP_PASSWORD` | Conditional | Required for `app_password` auth |
-| `BITBUCKET_TOKEN` | Conditional | Required for `oauth_token` auth |
-| `BITBUCKET_WORKSPACE` | No | Default workspace for operations |
+| `BITBUCKET_USERNAME` | Yes | Bitbucket username for authentication |
+| `BITBUCKET_APP_PASSWORD` | Yes | Bitbucket app password |
+| `BITBUCKET_WORKSPACE` | Yes | Workspace for operations |
 | `ASPNETCORE_LOGGING__LOGLEVEL__DEFAULT` | No | Logging level (Trace, Debug, Information, Warning, Error) |
 
 ### MCP Connection
@@ -143,8 +126,6 @@ curl -H "Accept: text/event-stream" http://localhost:8080/
 
 ### Authentication Setup
 
-#### App Password (Recommended for Personal Use)
-
 1. Go to Bitbucket Settings → Personal settings → App passwords
 2. Click "Create app password"
 3. Grant required permissions:
@@ -152,13 +133,6 @@ curl -H "Accept: text/event-stream" http://localhost:8080/
    - **Repositories**: Read
 4. Copy the generated password (shown only once)
 5. Use your Bitbucket username and the app password
-
-#### OAuth 2.0 Token (Recommended for Production)
-
-1. Create an OAuth consumer in your workspace settings
-2. Configure appropriate scopes
-3. Obtain an access token through OAuth flow
-4. Use the bearer token for authentication
 
 ## MCP Tools
 
@@ -292,9 +266,9 @@ docker build -t bitbucket-mcp:latest .
 docker run -d --rm \
   -p 8080:8080 \
   -e ASPNETCORE_URLS="http://+:8080" \
-  -e BITBUCKET_AUTH_TYPE=app_password \
   -e BITBUCKET_USERNAME=your-username \
   -e BITBUCKET_APP_PASSWORD=your-password \
+  -e BITBUCKET_WORKSPACE=your-workspace \
   bitbucket-mcp:latest
 ```
 
@@ -308,7 +282,6 @@ docker run -d --rm \
 - Verify your credentials are correct
 - For app passwords, ensure you're using your Bitbucket username (not email)
 - Check that app password has required permissions
-- For OAuth, verify token hasn't expired
 
 ### Connection Issues
 
@@ -350,13 +323,10 @@ BitbucketMCP/
 │       ├── Generated/          # Kiota-generated API client (auto-generated)
 │       ├── Tools/              # MCP tool implementations
 │       └── Program.cs          # Application entry point + DI + inline auth providers
-├── docs/                       # Documentation
 ├── Dockerfile                  # Docker configuration
 ├── docker-compose.yml          # Docker Compose setup
 └── README.md                   # This file
 ```
-
-**Note**: The `Services/` and `Models/` folders have been removed. Tools now use the Kiota-generated client and models directly, eliminating the abstraction layer.
 
 ### Regenerating API Client
 
@@ -400,17 +370,17 @@ Example:
 using BitbucketMCP.Generated;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
+using BitbucketMCP.Configuration;
 
 [McpServerToolType]
-public class MyCustomTool(BitbucketApiClient client)
+public class MyCustomTool(BitbucketApiClient client, BitbucketConfig config)
 {
     [McpServerTool(Name = "my_custom_tool")]
     [Description("Does something useful with pull requests")]
     public async Task<string> DoSomething(
-        [Description("The workspace slug")] string workspace,
         [Description("The repository slug")] string repo)
     {
-        var prs = await client.Repositories[workspace][repo].Pullrequests.GetAsync();
+        var prs = await client.Repositories[config.Workspace][repo].Pullrequests.GetAsync();
         return $"Found {prs?.Values?.Count ?? 0} pull requests";
     }
 }

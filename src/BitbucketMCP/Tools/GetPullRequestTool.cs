@@ -1,3 +1,4 @@
+using BitbucketMCP.Configuration;
 using BitbucketMCP.Generated;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
@@ -5,18 +6,17 @@ using System.ComponentModel;
 namespace BitbucketMCP.Tools;
 
 [McpServerToolType]
-public class GetPullRequestTool(BitbucketApiClient client)
+public class GetPullRequestTool(BitbucketApiClient client, BitbucketConfig config)
 {
     [McpServerTool(Name = "get_pull_request")]
     [Description("Retrieves details of a specific pull request from a Bitbucket repository")]
     public async Task<string> GetPullRequest(
-        [Description("The workspace slug (e.g., 'myworkspace')")] string workspace,
         [Description("The repository slug (e.g., 'myrepo')")] string repo,
         [Description("The pull request ID number")] int prId)
     {
         try
         {
-            var result = await client.Repositories[workspace][repo].Pullrequests[prId].GetAsync();
+            var result = await client.Repositories[config.Workspace][repo].Pullrequests[prId].GetAsync();
 
             if (result == null)
                 return $"❌ Pull request {prId} not found";

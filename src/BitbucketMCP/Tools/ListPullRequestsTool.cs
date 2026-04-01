@@ -6,18 +6,17 @@ using System.ComponentModel;
 namespace BitbucketMCP.Tools;
 
 [McpServerToolType]
-public class ListPullRequestsTool(BitbucketApiClient client)
+public class ListPullRequestsTool(BitbucketApiClient client, BitbucketConfig config)
 {
     [McpServerTool(Name = "list_pull_requests")]
     [Description("Lists pull requests in a Bitbucket repository with optional filtering")]
     public async Task<string> ListPullRequests(
-        [Description("The workspace slug (e.g., 'myworkspace')")] string workspace,
         [Description("The repository slug (e.g., 'myrepo')")] string repo,
         [Description("Filter by state: OPEN, MERGED, DECLINED, SUPERSEDED (optional, defaults to OPEN)")] string? state = null)
     {
         try
         {
-            var result = await client.Repositories[workspace][repo].Pullrequests.GetAsync(config =>
+            var result = await client.Repositories[config.Workspace][repo].Pullrequests.GetAsync(config =>
             {
                 if (!string.IsNullOrEmpty(state))
                 {

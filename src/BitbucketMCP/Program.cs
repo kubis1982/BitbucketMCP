@@ -11,11 +11,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Read and validate Bitbucket configuration from environment variables
 var config = new BitbucketConfig
 {
-    AuthType = Environment.GetEnvironmentVariable("BITBUCKET_AUTH_TYPE") ?? "app_password",
-    Username = Environment.GetEnvironmentVariable("BITBUCKET_USERNAME"),
-    AppPassword = Environment.GetEnvironmentVariable("BITBUCKET_APP_PASSWORD"),
-    Token = Environment.GetEnvironmentVariable("BITBUCKET_TOKEN"),
-    DefaultWorkspace = Environment.GetEnvironmentVariable("BITBUCKET_DEFAULT_WORKSPACE")
+    Username = Environment.GetEnvironmentVariable("BITBUCKET_USERNAME") ?? string.Empty,
+    AppPassword = Environment.GetEnvironmentVariable("BITBUCKET_APP_PASSWORD") ?? string.Empty,
+    Workspace = Environment.GetEnvironmentVariable("BITBUCKET_WORKSPACE") ?? string.Empty
 };
 
 try
@@ -35,13 +33,7 @@ builder.Services.AddSingleton(config);
 builder.Services.AddSingleton<IAuthenticationProvider>(sp =>
 {
     var bitbucketConfig = sp.GetRequiredService<BitbucketConfig>();
-    
-    return bitbucketConfig.AuthType switch
-    {
-        "app_password" => new BasicAuthProvider(bitbucketConfig.Username!, bitbucketConfig.AppPassword!),
-        "oauth_token" => new BearerTokenAuthProvider(bitbucketConfig.Token!),
-        _ => throw new InvalidOperationException($"Unknown auth type: {bitbucketConfig.AuthType}")
-    };
+    return new BasicAuthProvider(bitbucketConfig.Username, bitbucketConfig.AppPassword);
 });
 
 // Register HttpClient for Kiota
@@ -94,20 +86,6 @@ file class BasicAuthProvider(string username, string appPassword) : IAuthenticat
     {
         var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_username}:{_appPassword}"));
         request.Headers.Add("Authorization", $"Basic {credentials}");
-        return Task.CompletedTask;
-    }
-}
-
-/// <summary>
-/// Authentication provider for Bearer Token (OAuth)
-/// </summary>
-file class BearerTokenAuthProvider(string token) : IAuthenticationProvider
-{
-    private readonly string _token = token ?? throw new ArgumentNullException(nameof(token));
-
-    public Task AuthenticateRequestAsync(RequestInformation request, Dictionary<string, object>? additionalAuthenticationContext = null, CancellationToken cancellationToken = default)
-    {
-        request.Headers.Add("Authorization", $"Bearer {_token}");
         return Task.CompletedTask;
     }
 }

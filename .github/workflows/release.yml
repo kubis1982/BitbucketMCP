@@ -1,0 +1,419 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  validate-version:
+    name: Validate Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract-version.outputs.version }}
+      is-valid: ${{ steps.validate.outputs.is-valid }}
+    steps:
+      - name: Extract version from tag
+        id: extract-version
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/v}"
+          echo "version=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "Version extracted: $TAG_NAME"
+
+      - name: Validate version format
+        id: validate
+        run: |
+          VERSION="${{ steps.extract-version.outputs.version }}"
+          if [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "is-valid=true" >> $GITHUB_OUTPUT
+            echo "✅ Version format is valid: $VERSION"
+          else
+            echo "is-valid=false" >> $GITHUB_OUTPUT
+            echo "❌ Invalid version format: $VERSION. Expected format: x.y.z"
+            exit 1
+          fi
+
+  test:
+    name: Run Tests
+    needs: validate-version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test --no-build --configuration Release --verbosity normal --logger "trx;LogFileName=test-results.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/TestResults/*.trx'
+
+  create-release-branch:
+    name: Create Release Branch
+    needs: [validate-version, test]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create release branch
+        run: |
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          BRANCH_NAME="release/v$VERSION"
+          git checkout -b $BRANCH_NAME
+          echo "✅ Created branch: $BRANCH_NAME"
+
+      - name: Update version in Directory.Build.props
+        run: |
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          sed -i "s/<Version>.*<\/Version>/<Version>$VERSION<\/Version>/" Directory.Build.props
+          echo "✅ Updated version to $VERSION in Directory.Build.props"
+
+      - name: Commit version update
+        run: |
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          git add Directory.Build.props
+          git commit -m "chore: bump version to $VERSION"
+          git push origin release/v$VERSION
+          echo "✅ Committed and pushed version update"
+
+  build-and-docker:
+    name: Build and Publish Docker Image
+    needs: [validate-version, create-release-branch]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v4
+        with:
+          ref: release/v${{ needs.validate-version.outputs.version }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: docker-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            docker.io/${{ secrets.DOCKER_USERNAME }}/bitbucketmcp
+            ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}},value=v${{ needs.validate-version.outputs.version }}
+            type=semver,pattern={{major}}.{{minor}},value=v${{ needs.validate-version.outputs.version }}
+            type=raw,value=latest
+
+      - name: Build and push to registries
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.docker-meta.outputs.tags }}
+          labels: ${{ steps.docker-meta.outputs.labels }}
+
+      - name: List Docker images
+        run: |
+          echo "🐳 Docker images built and pushed:"
+          echo "📦 docker.io/${{ secrets.DOCKER_USERNAME }}/bitbucketmcp:v${{ needs.validate-version.outputs.version }}"
+          echo "📦 ghcr.io/${{ github.repository }}:v${{ needs.validate-version.outputs.version }}"
+
+  create-github-release:
+    name: Create GitHub Release
+    needs: [validate-version, build-and-docker]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v4
+        with:
+          ref: release/v${{ needs.validate-version.outputs.version }}
+          fetch-depth: 0
+
+      - name: Get previous tag
+        id: previous-tag
+        run: |
+          # Get all tags sorted by version, excluding current
+          CURRENT_TAG="v${{ needs.validate-version.outputs.version }}"
+          PREVIOUS_TAG=$(git tag -l "v*.*.*" | grep -v "$CURRENT_TAG" | sort -V | tail -n 1)
+
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous tag found, using first commit"
+            PREVIOUS_TAG=$(git rev-list --max-parents=0 HEAD)
+          fi
+
+          echo "previous-tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
+          echo "📋 Previous tag: $PREVIOUS_TAG"
+
+      - name: Generate changelog from commits
+        id: changelog
+        run: |
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          PREVIOUS_TAG="${{ steps.previous-tag.outputs.previous-tag }}"
+          CURRENT_TAG="v$VERSION"
+
+          echo "## 📋 What's Changed" > changelog.md
+          echo "" >> changelog.md
+
+          # Breaking changes
+          BREAKING_CHANGES=$(git log $PREVIOUS_TAG..$CURRENT_TAG --grep="BREAKING CHANGE" --pretty=format:"- %s (%h)" || true)
+          if [ ! -z "$BREAKING_CHANGES" ]; then
+            echo "### ⚠️ BREAKING CHANGES" >> changelog.md
+            echo "" >> changelog.md
+            echo "$BREAKING_CHANGES" >> changelog.md
+            echo "" >> changelog.md
+          fi
+
+          # Features
+          FEATURES=$(git log $PREVIOUS_TAG..$CURRENT_TAG --grep="^feat" --pretty=format:"- %s by @%an (%h)" || true)
+          if [ ! -z "$FEATURES" ]; then
+            echo "### ✨ Features" >> changelog.md
+            echo "" >> changelog.md
+            echo "$FEATURES" >> changelog.md
+            echo "" >> changelog.md
+          fi
+
+          # Bug fixes
+          BUGFIXES=$(git log $PREVIOUS_TAG..$CURRENT_TAG --grep="^fix" --pretty=format:"- %s by @%an (%h)" || true)
+          if [ ! -z "$BUGFIXES" ]; then
+            echo "### 🐛 Bug Fixes" >> changelog.md
+            echo "" >> changelog.md
+            echo "$BUGFIXES" >> changelog.md
+            echo "" >> changelog.md
+          fi
+
+          # Documentation
+          DOCS=$(git log $PREVIOUS_TAG..$CURRENT_TAG --grep="^docs" --pretty=format:"- %s by @%an (%h)" || true)
+          if [ ! -z "$DOCS" ]; then
+            echo "### 📝 Documentation" >> changelog.md
+            echo "" >> changelog.md
+            echo "$DOCS" >> changelog.md
+            echo "" >> changelog.md
+          fi
+
+          # Performance
+          PERF=$(git log $PREVIOUS_TAG..$CURRENT_TAG --grep="^perf" --pretty=format:"- %s by @%an (%h)" || true)
+          if [ ! -z "$PERF" ]; then
+            echo "### ⚡ Performance" >> changelog.md
+            echo "" >> changelog.md
+            echo "$PERF" >> changelog.md
+            echo "" >> changelog.md
+          fi
+
+          # Refactoring
+          REFACTOR=$(git log $PREVIOUS_TAG..$CURRENT_TAG --grep="^refactor" --pretty=format:"- %s by @%an (%h)" || true)
+          if [ ! -z "$REFACTOR" ]; then
+            echo "### ♻️ Code Refactoring" >> changelog.md
+            echo "" >> changelog.md
+            echo "$REFACTOR" >> changelog.md
+            echo "" >> changelog.md
+          fi
+
+          # Other changes
+          OTHER=$(git log $PREVIOUS_TAG..$CURRENT_TAG --grep="^test\|^chore\|^ci\|^build" --pretty=format:"- %s by @%an (%h)" || true)
+          if [ ! -z "$OTHER" ]; then
+            echo "### 🔧 Other Changes" >> changelog.md
+            echo "" >> changelog.md
+            echo "$OTHER" >> changelog.md
+            echo "" >> changelog.md
+          fi
+
+          cat changelog.md
+
+      - name: Generate statistics
+        id: statistics
+        run: |
+          PREVIOUS_TAG="${{ steps.previous-tag.outputs.previous-tag }}"
+          CURRENT_TAG="v${{ needs.validate-version.outputs.version }}"
+
+          echo "## 📊 Statistics" > statistics.md
+          echo "" >> statistics.md
+
+          # Commit count
+          COMMIT_COUNT=$(git rev-list $PREVIOUS_TAG..$CURRENT_TAG --count)
+          echo "- **$COMMIT_COUNT** commits since $PREVIOUS_TAG" >> statistics.md
+
+          # Files changed
+          FILES_CHANGED=$(git diff $PREVIOUS_TAG..$CURRENT_TAG --stat | tail -n 1 || echo "0 files changed")
+          echo "- $FILES_CHANGED" >> statistics.md
+
+          # Contributors
+          echo "- **Contributors**: " >> statistics.md
+          git log $PREVIOUS_TAG..$CURRENT_TAG --format='%an' | sort -u | while read author; do
+            echo "  - @$author" >> statistics.md
+          done
+
+          echo "" >> statistics.md
+          echo "**Full Changelog**: [\`$PREVIOUS_TAG...$CURRENT_TAG\`](https://github.com/${{ github.repository }}/compare/$PREVIOUS_TAG...$CURRENT_TAG)" >> statistics.md
+          echo "" >> statistics.md
+
+          cat statistics.md
+
+      - name: Generate Docker image details
+        id: docker-details
+        run: |
+          VERSION="${{ needs.validate-version.outputs.version }}"
+
+          echo "## 🐳 Docker Images" > docker.md
+          echo "" >> docker.md
+          echo "This release is available as Docker images:" >> docker.md
+          echo "" >> docker.md
+          echo "### Pull from Docker Hub" >> docker.md
+          echo '```bash' >> docker.md
+          echo "docker pull ${{ secrets.DOCKER_USERNAME }}/bitbucketmcp:$VERSION" >> docker.md
+          echo "docker pull ${{ secrets.DOCKER_USERNAME }}/bitbucketmcp:latest" >> docker.md
+          echo '```' >> docker.md
+          echo "" >> docker.md
+          echo "### Pull from GitHub Container Registry" >> docker.md
+          echo '```bash' >> docker.md
+          echo "docker pull ghcr.io/${{ github.repository }}:$VERSION" >> docker.md
+          echo "docker pull ghcr.io/${{ github.repository }}:latest" >> docker.md
+          echo '```' >> docker.md
+          echo "" >> docker.md
+          echo "### Run Docker Container" >> docker.md
+          echo '```bash' >> docker.md
+          echo "docker run -p 8080:8080 \\" >> docker.md
+          echo "  -e BITBUCKET_USERNAME=your_username \\" >> docker.md
+          echo "  -e BITBUCKET_APP_PASSWORD=your_app_password \\" >> docker.md
+          echo "  -e BITBUCKET_WORKSPACE=your_workspace \\" >> docker.md
+          echo "  ghcr.io/${{ github.repository }}:$VERSION" >> docker.md
+          echo '```' >> docker.md
+          echo "" >> docker.md
+
+          cat docker.md
+
+      - name: Get package sizes
+        id: package-sizes
+        run: |
+          echo "## 📦 Package Details" > packages.md
+          echo "" >> packages.md
+          echo "| Package | Version | Size |" >> packages.md
+          echo "|---------|---------|------|" >> packages.md
+
+          VERSION="${{ needs.validate-version.outputs.version }}"
+
+          for package in ./artifacts/*.nupkg; do
+            PACKAGE_NAME=$(basename "$package" .nupkg)
+            PACKAGE_ID=$(echo "$PACKAGE_NAME" | sed -E "s/\.$VERSION//")
+            SIZE=$(du -h "$package" | cut -f1)
+            echo "| [\`$PACKAGE_ID\`](https://www.nuget.org/packages/$PACKAGE_ID/$VERSION) | $VERSION | $SIZE |" >> packages.md
+          done
+
+          echo "" >> packages.md
+          cat packages.md
+
+      - name: Combine release notes
+        id: release-notes
+        run: |
+          VERSION="${{ needs.validate-version.outputs.version }}"
+
+          echo "# Release v$VERSION" > release-notes.md
+          echo "" >> release-notes.md
+
+          # Add changelog
+          if [ -f changelog.md ]; then
+            cat changelog.md >> release-notes.md
+            echo "" >> release-notes.md
+          fi
+
+          # Add Docker details
+          if [ -f docker.md ]; then
+            cat docker.md >> release-notes.md
+            echo "" >> release-notes.md
+          fi
+
+          # Add statistics
+          if [ -f statistics.md ]; then
+            cat statistics.md >> release-notes.md
+            echo "" >> release-notes.md
+          fi
+
+          echo "---" >> release-notes.md
+          echo "" >> release-notes.md
+          echo "**Note**: If you're upgrading from a previous version, please review the changelog above for any breaking changes." >> release-notes.md
+
+          cat release-notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.validate-version.outputs.version }}
+          name: Release v${{ needs.validate-version.outputs.version }}
+          body_path: release-notes.md
+          files: ./artifacts/*.nupkg
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  cleanup:
+    name: Cleanup and Merge
+    needs: [validate-version, create-github-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge release branch to main
+        run: |
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          BRANCH_NAME="release/v$VERSION"
+          
+          git fetch origin
+          git checkout main
+          git pull origin main
+          git merge origin/$BRANCH_NAME --no-ff -m "chore: merge release v$VERSION into main"
+          git push origin main
+          echo "✅ Merged $BRANCH_NAME into main"
+
+      - name: Delete release branch
+        run: |
+          VERSION="${{ needs.validate-version.outputs.version }}"
+          BRANCH_NAME="release/v$VERSION"
+          
+          git push origin --delete $BRANCH_NAME
+          echo "✅ Deleted branch $BRANCH_NAME"
