@@ -1,11 +1,11 @@
 using System.ComponentModel;
-using BitbucketMCP.Services;
 using ModelContextProtocol.Server;
+using KiotaClient = BitbucketMCP.Generated.BitbucketApiClient;
 
 namespace BitbucketMCP.Tools;
 
 [McpServerToolType]
-public class GetPullRequestTool(BitbucketApiClient apiClient)
+public class GetPullRequestTool(KiotaClient client)
 {
     [McpServerTool(Name = "get_pull_request")]
     [Description("Retrieves details of a specific pull request from a Bitbucket repository")]
@@ -16,19 +16,22 @@ public class GetPullRequestTool(BitbucketApiClient apiClient)
     {
         try
         {
-            var result = await apiClient.GetPullRequest(workspace, repo, prId);
+            var result = await client.Repositories[workspace][repo].Pullrequests[prId].GetAsync();
+
+            if (result == null)
+                return $"❌ Pull request {prId} not found";
 
             return $"📋 Pull Request Details\n\n" +
                    $"ID: {result.Id}\n" +
                    $"Title: {result.Title}\n" +
-                   $"Description: {result.Description}\n" +
+                   $"Description: {result.Summary?.Raw ?? "N/A"}\n" +
                    $"State: {result.State}\n" +
-                   $"Comments: {result.CommentCount}\n" +
-                   $"Tasks: {result.TaskCount}\n" +
-                   $"Created: {result.CreatedOn}\n" +
-                   $"Updated: {result.UpdatedOn}\n" +
-                   (result.MergeCommit != null ? $"Merge Commit: {result.MergeCommit}\n" : "") +
-                   $"URL: {result.Url}";
+                   $"Comments: {result.CommentCount ?? 0}\n" +
+                   $"Tasks: {result.TaskCount ?? 0}\n" +
+                   $"Created: {result.CreatedOn?.ToString("O") ?? "N/A"}\n" +
+                   $"Updated: {result.UpdatedOn?.ToString("O") ?? "N/A"}\n" +
+                   (result.MergeCommit?.Hash != null ? $"Merge Commit: {result.MergeCommit.Hash}\n" : "") +
+                   $"URL: {result.Links?.Html?.Href ?? "N/A"}";
         }
         catch (HttpRequestException ex)
         {
