@@ -92,13 +92,13 @@ jobs:
       - name: Update version in BitbucketMCP.csproj
         run: |
           VERSION="${{ needs.validate-version.outputs.version }}"
-          sed -i "s/<Version>.*<\/Version>/<Version>$VERSION<\/Version>/" BitbucketMCP.csproj
+          sed -i "s/<Version>.*<\/Version>/<Version>$VERSION<\/Version>/" ./src/BitbucketMCP/BitbucketMCP.csproj
           echo "✅ Updated version to $VERSION in BitbucketMCP.csproj"
 
       - name: Commit version update
         run: |
           VERSION="${{ needs.validate-version.outputs.version }}"
-          git add BitbucketMCP.csproj
+          git add ./src/BitbucketMCP/BitbucketMCP.csproj
           git commit -m "chore: bump version to $VERSION"
           git push origin release/v$VERSION
           echo "✅ Committed and pushed version update"
