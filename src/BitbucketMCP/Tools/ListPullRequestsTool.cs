@@ -1,3 +1,4 @@
+using BitbucketMCP.Configuration;
 using BitbucketMCP.Generated;
 using BitbucketMCP.Generated.Repositories.Item.Item.Pullrequests;
 using ModelContextProtocol.Server;
@@ -33,7 +34,7 @@ public class ListPullRequestsTool(BitbucketApiClient client, BitbucketConfig con
                 return $"📋 No pull requests found" + (state != null ? $" with state: {state}" : "");
             }
 
-            var output = $"📋 Pull Requests in {workspace}/{repo}" + (state != null ? $" (State: {state})" : "") + $"\n\n";
+            var output = $"📋 Pull Requests in {config.Workspace}/{repo}" + (state != null ? $" (State: {state})" : "") + $"\n\n";
             output += $"Total: {result.Values.Count}\n\n";
 
             foreach (var pr in result.Values.Where(pr => pr != null))

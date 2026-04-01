@@ -1,5 +1,6 @@
 using BitbucketMCP.Configuration;
 using BitbucketMCP.Generated;
+using BitbucketMCP.Generated.Models;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 
@@ -21,25 +22,25 @@ public class CreatePullRequestTool(BitbucketApiClient client, BitbucketConfig co
     {
         try
         {
-            var pr = new KiotaModels.Pullrequest
+            var pr = new Pullrequest
             {
                 Title = title,
-                Summary = new KiotaModels.Pullrequest_summary
+                Summary = new Pullrequest_summary
                 {
                     Raw = isDraft && !string.IsNullOrEmpty(description) 
                         ? $"[DRAFT] {description}" 
                         : description ?? string.Empty
                 },
-                Source = new KiotaModels.Pullrequest_endpoint
+                Source = new Pullrequest_endpoint
                 {
-                    Branch = new KiotaModels.Pullrequest_endpoint_branch
+                    Branch = new Pullrequest_endpoint_branch
                     {
                         Name = sourceBranch
                     }
                 },
-                Destination = new KiotaModels.Pullrequest_endpoint
+                Destination = new Pullrequest_endpoint
                 {
-                    Branch = new KiotaModels.Pullrequest_endpoint_branch
+                    Branch = new Pullrequest_endpoint_branch
                     {
                         Name = destinationBranch
                     }
@@ -51,7 +52,7 @@ public class CreatePullRequestTool(BitbucketApiClient client, BitbucketConfig co
             // Add reviewers if specified
             if (reviewers?.Any() == true)
             {
-                pr.Reviewers = reviewers.Select(uuid => new KiotaModels.Account
+                pr.Reviewers = reviewers.Select(uuid => new Account
                 {
                     Uuid = uuid
                 }).ToList();

@@ -51,7 +51,7 @@ public class UpdatePullRequestTool(BitbucketApiClient client, BitbucketConfig co
                 current.Draft = isDraft;
 
             // PUT updated PR
-            var result = await client.Repositories[workspace][repo].Pullrequests[prId].PutAsync(current);
+            var result = await client.Repositories[config.Workspace][repo].Pullrequests[prId].PutAsync(current);
 
             if (result == null)
                 return "❌ Failed to update pull request: No response from API";
