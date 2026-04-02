@@ -1,8 +1,10 @@
 using BitbucketMCP.Configuration;
 using BitbucketMCP.Generated;
 using BitbucketMCP.Generated.Models;
+using BitbucketMCP.Models;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
+using System.Linq;
 
 namespace BitbucketMCP.Tools;
 
@@ -11,7 +13,7 @@ public class CreatePullRequestTool(BitbucketApiClient client, BitbucketConfig co
 {
     [McpServerTool(Name = "create_pull_request")]
     [Description("Creates a new pull request in a Bitbucket repository")]
-    public async Task<string> CreatePullRequest(
+    public async Task<PullResponse> CreatePullRequest(
         [Description("The repository slug (e.g., 'myrepo')")] string repo,
         [Description("The title of the pull request")] string title,
         [Description("The description/body of the pull request")] string? description,
@@ -20,63 +22,47 @@ public class CreatePullRequestTool(BitbucketApiClient client, BitbucketConfig co
         [Description("Optional array of reviewer account UUIDs in format '{account-id}'")] List<string>? reviewers = null,
         [Description("Whether this is a draft pull request (note: managed via description prefix)")] bool isDraft = false)
     {
-        try
+        var pr = new Pullrequest
         {
-            var pr = new Pullrequest
+            Title = title,
+            Summary = new Pullrequest_summary
             {
-                Title = title,
-                Summary = new Pullrequest_summary
-                {
-                    Raw = isDraft && !string.IsNullOrEmpty(description) 
-                        ? $"[DRAFT] {description}" 
-                        : description ?? string.Empty
-                },
-                Source = new Pullrequest_endpoint
-                {
-                    Branch = new Pullrequest_endpoint_branch
-                    {
-                        Name = sourceBranch
-                    }
-                },
-                Destination = new Pullrequest_endpoint
-                {
-                    Branch = new Pullrequest_endpoint_branch
-                    {
-                        Name = destinationBranch
-                    }
-                },
-                CloseSourceBranch = false,
-                Draft = isDraft
-            };
-
-            // Add reviewers if specified
-            if (reviewers?.Any() == true)
+                Raw = isDraft && !string.IsNullOrEmpty(description)
+                    ? $"[DRAFT] {description}"
+                    : description ?? string.Empty
+            },
+            Source = new Pullrequest_endpoint
             {
-                pr.Reviewers = reviewers.Select(uuid => new Account
+                Branch = new Pullrequest_endpoint_branch
                 {
-                    Uuid = uuid
-                }).ToList();
-            }
+                    Name = sourceBranch
+                }
+            },
+            Destination = new Pullrequest_endpoint
+            {
+                Branch = new Pullrequest_endpoint_branch
+                {
+                    Name = destinationBranch
+                }
+            },
+            CloseSourceBranch = false,
+            Draft = isDraft
+        };
 
-            var result = await client.Repositories[config.Workspace][repo].Pullrequests.PostAsync(pr);
-
-            if (result == null)
-                return "❌ Failed to create pull request: No response from API";
-
-            return $"✅ Pull request created successfully!\n\n" +
-                   $"ID: {result.Id}\n" +
-                   $"Title: {result.Title}\n" +
-                   $"State: {result.State}\n" +
-                   $"URL: {result.Links?.Html?.Href ?? "N/A"}\n" +
-                   $"Created: {result.CreatedOn?.ToString("O") ?? "N/A"}";
-        }
-        catch (HttpRequestException ex)
+        // Add reviewers if specified
+        if (reviewers?.Any() == true)
         {
-            return $"❌ Failed to create pull request: {ex.Message}";
+            pr.Reviewers = reviewers.Select(uuid => new Account
+            {
+                Uuid = uuid
+            }).ToList();
         }
-        catch (Exception ex)
-        {
-            return $"❌ Error: {ex.Message}";
-        }
+
+        var result = await client.Repositories[config.Workspace][repo].Pullrequests.PostAsync(pr);
+
+        if (result == null)
+            throw new InvalidOperationException("Failed to create pull request: No response from API");
+
+        return PullResponse.From(result);
     }
 }

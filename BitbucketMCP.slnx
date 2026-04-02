@@ -6,6 +6,9 @@
     <File Path="Dockerfile" />
     <File Path="README.md" />
   </Folder>
+  <Folder Name="/solution items/ci/">
+    <File Path=".github/workflows/release.yml" />
+  </Folder>
   <Folder Name="/solution items/scripts/">
     <File Path="scripts/generate-client.bat" />
     <File Path="scripts/generate-client.ps1" />
