@@ -21,10 +21,7 @@ public class UpdatePullRequestTool(BitbucketApiClient client, BitbucketConfig co
         [Description("Update draft status (note: managed via description prefix)")] bool? isDraft = null)
     {
         // GET current PR
-        var current = await client.Repositories[config.Workspace][repo].Pullrequests[prId].GetAsync();
-
-        if (current == null)
-            throw new InvalidOperationException($"Pull request {prId} not found");
+        var current = await client.Repositories[config.Workspace][repo].Pullrequests[prId].GetAsync() ?? throw new InvalidOperationException($"Pull request {prId} not found");
 
         // Modify only specified fields
         if (!string.IsNullOrWhiteSpace(title))
@@ -49,12 +46,8 @@ public class UpdatePullRequestTool(BitbucketApiClient client, BitbucketConfig co
         if (isDraft.HasValue)
             current.Draft = isDraft;
 
-        // PUT updated PR
-        var result = await client.Repositories[config.Workspace][repo].Pullrequests[prId].PutAsync(current);
-
-        if (result == null)
-            throw new InvalidOperationException("Failed to update pull request: No response from API");
-
+        var result = await client.Repositories[config.Workspace][repo].Pullrequests[prId].PutAsync(current) ?? throw new InvalidOperationException("Failed to update pull request: No response from API");
+        
         return PullResponse.From(result);
     }
 }

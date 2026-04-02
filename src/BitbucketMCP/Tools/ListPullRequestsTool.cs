@@ -1,10 +1,9 @@
 using BitbucketMCP.Configuration;
 using BitbucketMCP.Generated;
-using BitbucketMCP.Models;
 using BitbucketMCP.Generated.Repositories.Item.Item.Pullrequests;
+using BitbucketMCP.Models;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
-using System.Linq;
 
 namespace BitbucketMCP.Tools;
 
@@ -29,9 +28,6 @@ public class ListPullRequestsTool(BitbucketApiClient client, BitbucketConfig con
             }
         });
 
-        if (result == null || result.Values == null)
-            return new List<PullResponse>();
-
-        return result.Values.Where(p => p != null).Select(p => PullResponse.From(p!)).ToList();
+        return result == null || result.Values == null ? [] : result.Values.Where(p => p != null).Select(p => PullResponse.From(p!)).ToList();
     }
 }

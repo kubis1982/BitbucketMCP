@@ -27,9 +27,7 @@ public class CreatePullRequestTool(BitbucketApiClient client, BitbucketConfig co
             Title = title,
             Summary = new Pullrequest_summary
             {
-                Raw = isDraft && !string.IsNullOrEmpty(description)
-                    ? $"[DRAFT] {description}"
-                    : description ?? string.Empty
+                Raw = description ?? string.Empty
             },
             Source = new Pullrequest_endpoint
             {
@@ -58,11 +56,8 @@ public class CreatePullRequestTool(BitbucketApiClient client, BitbucketConfig co
             }).ToList();
         }
 
-        var result = await client.Repositories[config.Workspace][repo].Pullrequests.PostAsync(pr);
-
-        if (result == null)
-            throw new InvalidOperationException("Failed to create pull request: No response from API");
-
+        var result = await client.Repositories[config.Workspace][repo].Pullrequests.PostAsync(pr) ?? throw new InvalidOperationException("Failed to create pull request: No response from API");
+        
         return PullResponse.From(result);
     }
 }

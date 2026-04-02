@@ -143,7 +143,6 @@ The server exposes the following MCP tools:
 Creates a new pull request in a Bitbucket repository.
 
 **Parameters**:
-- `workspace` (required): Workspace slug
 - `repo` (required): Repository slug
 - `title` (required): PR title
 - `description` (optional): PR description
@@ -155,7 +154,6 @@ Creates a new pull request in a Bitbucket repository.
 **Example**:
 ```json
 {
-  "workspace": "myworkspace",
   "repo": "myrepo",
   "title": "Add new feature",
   "description": "This PR adds amazing new features",
@@ -171,7 +169,6 @@ Creates a new pull request in a Bitbucket repository.
 Updates an existing pull request.
 
 **Parameters**:
-- `workspace` (required): Workspace slug
 - `repo` (required): Repository slug
 - `prId` (required): PR ID number
 - `title` (optional): New PR title
@@ -182,7 +179,6 @@ Updates an existing pull request.
 **Example**:
 ```json
 {
-  "workspace": "myworkspace",
   "repo": "myrepo",
   "prId": 123,
   "title": "Updated title",
@@ -195,14 +191,12 @@ Updates an existing pull request.
 Retrieves details of a pull request.
 
 **Parameters**:
-- `workspace` (required): Workspace slug
 - `repo` (required): Repository slug
 - `prId` (required): PR ID number
 
 **Example**:
 ```json
 {
-  "workspace": "myworkspace",
   "repo": "myrepo",
   "prId": 123
 }
@@ -213,14 +207,12 @@ Retrieves details of a pull request.
 Lists pull requests in a repository with optional state filtering.
 
 **Parameters**:
-- `workspace` (required): Workspace slug
 - `repo` (required): Repository slug
 - `state` (optional): Filter by state - `OPEN`, `MERGED`, `DECLINED`, `SUPERSEDED` (if not specified, defaults to `OPEN`)
 
 **Example**:
 ```json
 {
-  "workspace": "myworkspace",
   "repo": "myrepo",
   "state": "OPEN"
 }
@@ -357,35 +349,6 @@ The script will:
 - Generate a fresh API client with all models and request builders
 - Output generation summary
 
-### Adding New Tools
-
-1. Create a new class in `Tools/` directory
-2. Add `[McpServerToolType]` attribute to the class
-3. Create methods with `[McpServerTool]` attribute
-4. Add parameter descriptions with `[Description]` attribute
-5. Use the Kiota-generated client directly (injected via constructor)
-
-Example:
-```csharp
-using BitbucketMCP.Generated;
-using ModelContextProtocol.Server;
-using System.ComponentModel;
-using BitbucketMCP.Configuration;
-
-[McpServerToolType]
-public class MyCustomTool(BitbucketApiClient client, BitbucketConfig config)
-{
-    [McpServerTool(Name = "my_custom_tool")]
-    [Description("Does something useful with pull requests")]
-    public async Task<string> DoSomething(
-        [Description("The repository slug")] string repo)
-    {
-        var prs = await client.Repositories[config.Workspace][repo].Pullrequests.GetAsync();
-        return $"Found {prs?.Values?.Count ?? 0} pull requests";
-    }
-}
-```
-
 ### Architecture Notes
 
 - **HTTP/SSE Transport**: Server uses ASP.NET Core with Streamable HTTP transport (MCP SDK 1.2.0+)
@@ -395,16 +358,6 @@ public class MyCustomTool(BitbucketApiClient client, BitbucketConfig config)
 - **Simplified DI**: `Program.cs` registers only the Kiota client and authentication; Tools receive the client via constructor injection
 - **Type Safety**: Full IntelliSense and compile-time checking for all API operations
 - **Docker Ready**: Uses `mcr.microsoft.com/dotnet/aspnet:10.0` runtime image with port 8080 exposed
-
-## Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
 
 ## License
 

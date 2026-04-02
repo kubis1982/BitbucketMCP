@@ -15,10 +15,7 @@ public class GetPullRequestTool(BitbucketApiClient client, BitbucketConfig confi
         [Description("The repository slug (e.g., 'myrepo')")] string repo,
         [Description("The pull request ID number")] int prId)
     {
-        var result = await client.Repositories[config.Workspace][repo].Pullrequests[prId].GetAsync();
-
-        if (result == null)
-            throw new InvalidOperationException($"Pull request {prId} not found");
+        var result = await client.Repositories[config.Workspace][repo].Pullrequests[prId].GetAsync() ?? throw new InvalidOperationException($"Pull request {prId} not found");
 
         return PullResponse.From(result);
     }

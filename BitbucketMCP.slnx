@@ -16,4 +16,7 @@
   <Folder Name="/src/">
     <Project Path="src/BitbucketMCP/BitbucketMCP.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="src/BitbucketMCP.Tests/BitbucketMCP.Tests.csproj" />
+  </Folder>
 </Solution>
