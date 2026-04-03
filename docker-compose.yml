@@ -1,9 +1,9 @@
 services:
-  bitbucket-mcp:
+  bitbucket-http:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: bitbucket-mcp-server
+    container_name: bitbucket-mcp-http
     ports:
       - "8080:8080"
     environment:
@@ -19,3 +19,19 @@ services:
       # ASPNETCORE_LOGGING__LOGLEVEL__DEFAULT: "Information"
     
     restart: unless-stopped
+
+  bitbucket-stdio:
+      build:
+        context: .
+        dockerfile: Dockerfile.stdio
+      container_name: bitbucket-mcp-stdio
+      environment:      
+        # For app_password authentication:
+        BITBUCKET_USERNAME: ""
+        BITBUCKET_APP_PASSWORD: ""
+        BITBUCKET_WORKSPACE: ""
+      
+        # Optional: Logging level (Trace, Debug, Information, Warning, Error)
+        # ASPNETCORE_LOGGING__LOGLEVEL__DEFAULT: "Information"
+    
+      restart: unless-stopped

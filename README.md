@@ -4,11 +4,13 @@ A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Clou
 
 ## Features
 
-- **MCP Protocol Support**: Full implementation of Model Context Protocol over **HTTP/SSE transport** (Streamable HTTP)
+- **MCP Protocol Support**: Full implementation of Model Context Protocol with **two transport options**:
+  - **HTTP/SSE transport** (Streamable HTTP) - for web-based clients
+  - **Stdio transport** - for process-based integration (e.g., Claude Desktop)
 - **Kiota-Generated Client**: Type-safe API client auto-generated from Bitbucket OpenAPI specification
 - **Bitbucket App Password Authentication**: Secure authentication using Bitbucket app passwords
-- **Docker Support**: Ready-to-use Docker container with multi-stage build
-- **Modern .NET**: Built on .NET 10 with ASP.NET Core for HTTP transport
+- **Docker Support**: Ready-to-use Docker containers for both transport modes
+- **Modern .NET**: Built on .NET 10 with flexible transport configuration
 
 ## Prerequisites
 
@@ -19,7 +21,7 @@ A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Clou
 
 ## Quick Start
 
-### Using Docker
+### Using Docker (HTTP Transport)
 
 1. **Clone the repository**:
    ```bash
@@ -51,7 +53,37 @@ A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Clou
    curl -H "Accept: text/event-stream" http://localhost:8080/
    ```
 
-### Local Development
+### Using Docker (Stdio Transport)
+
+For use with Claude Desktop or other stdio-based MCP clients:
+
+```bash
+docker run -i \
+  -e BITBUCKET_USERNAME="your-username" \
+  -e BITBUCKET_APP_PASSWORD="your-app-password" \
+  -e BITBUCKET_WORKSPACE="your-workspace" \
+  ghcr.io/kubis1982/bitbucketmcp:latest-stdio
+```
+
+Or add to your Claude Desktop config:
+```json
+{
+  "mcpServers": {
+    "bitbucket": {
+      "command": "docker",
+      "args": [
+        "run", "-i",
+        "-e", "BITBUCKET_USERNAME=your-username",
+        "-e", "BITBUCKET_APP_PASSWORD=your-app-password",
+        "-e", "BITBUCKET_WORKSPACE=your-workspace",
+        "ghcr.io/kubis1982/bitbucketmcp:latest-stdio"
+      ]
+    }
+  }
+}
+```
+
+### Local Development (HTTP Transport - Default)
 
 1. **Restore dependencies**:
    ```bash
@@ -80,19 +112,50 @@ A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Clou
    
    The server will be available at: **http://localhost:5000**
 
+### Local Development (Stdio Transport)
+
+```bash
+# Set environment variables (same as above)
+dotnet run --project src/BitbucketMCP -- --transport=stdio
+```
+
+This runs the server in stdio mode, communicating via standard input/output.
+
 ## Configuration
+
+### Transport Selection
+
+The server supports two MCP transport modes, controlled via the `--transport` argument:
+
+- **`--transport=http`** (default): HTTP/SSE transport for web-based clients
+- **`--transport=stdio`**: Standard input/output transport for process-based integration
+
+Examples:
+```bash
+# HTTP transport (default)
+dotnet run --project src/BitbucketMCP
+# or explicitly:
+dotnet run --project src/BitbucketMCP -- --transport=http
+
+# Stdio transport
+dotnet run --project src/BitbucketMCP -- --transport=stdio
+```
 
 ### Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ASPNETCORE_URLS` | No | Server listening URL (default: http://localhost:5000, Docker: http://+:8080) |
+| `ASPNETCORE_URLS` | No* | Server listening URL (default: http://localhost:5000, Docker: http://+:8080). *Only used for HTTP transport |
 | `BITBUCKET_USERNAME` | Yes | Bitbucket username for authentication |
 | `BITBUCKET_APP_PASSWORD` | Yes | Bitbucket app password |
 | `BITBUCKET_WORKSPACE` | Yes | Workspace for operations |
 | `ASPNETCORE_LOGGING__LOGLEVEL__DEFAULT` | No | Logging level (Trace, Debug, Information, Warning, Error) |
 
 ### MCP Connection
+
+The server supports two transport modes:
+
+#### HTTP/SSE Transport
 
 The server uses **HTTP/SSE (Server-Sent Events)** transport, implementing the Model Context Protocol's Streamable HTTP specification.
 
@@ -102,7 +165,7 @@ The server uses **HTTP/SSE (Server-Sent Events)** transport, implementing the Mo
 - **Protocol**: MCP over HTTP with Server-Sent Events
 - **Required Headers**: `Accept: text/event-stream`
 
-**Example MCP Client Configuration** (Claude Desktop):
+**Example MCP Client Configuration** (Claude Desktop with HTTP):
 ```json
 {
   "mcpServers": {
@@ -122,6 +185,49 @@ The server uses **HTTP/SSE (Server-Sent Events)** transport, implementing the Mo
 curl -H "Accept: text/event-stream" http://localhost:8080/
 
 # For full MCP communication, use an MCP-compatible client
+```
+
+#### Stdio Transport
+
+The server can also run in **stdio mode**, where it communicates via standard input/output streams. This is ideal for process-based integration with MCP clients like Claude Desktop.
+
+**Example MCP Client Configuration** (Claude Desktop with Stdio):
+```json
+{
+  "mcpServers": {
+    "bitbucket": {
+      "command": "docker",
+      "args": [
+        "run", "-i",
+        "-e", "BITBUCKET_USERNAME=your-username",
+        "-e", "BITBUCKET_APP_PASSWORD=your-app-password",
+        "-e", "BITBUCKET_WORKSPACE=your-workspace",
+        "ghcr.io/kubis1982/bitbucketmcp:latest-stdio"
+      ]
+    }
+  }
+}
+```
+
+Or with local dotnet:
+```json
+{
+  "mcpServers": {
+    "bitbucket": {
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project", "/path/to/BitbucketMCP/src/BitbucketMCP",
+        "--", "--transport=stdio"
+      ],
+      "env": {
+        "BITBUCKET_USERNAME": "your-username",
+        "BITBUCKET_APP_PASSWORD": "your-app-password",
+        "BITBUCKET_WORKSPACE": "your-workspace"
+      }
+    }
+  }
+}
 ```
 
 ### Authentication Setup
@@ -250,8 +356,10 @@ dotnet publish -c Release -o ./publish
 
 ## Docker Build
 
+### HTTP Transport Image
+
 ```bash
-# Build the Docker image
+# Build the HTTP transport Docker image
 docker build -t bitbucket-mcp:latest .
 
 # Run the container with port mapping for HTTP/SSE
@@ -263,6 +371,22 @@ docker run -d --rm \
   -e BITBUCKET_WORKSPACE=your-workspace \
   bitbucket-mcp:latest
 ```
+
+### Stdio Transport Image
+
+```bash
+# Build the stdio transport Docker image
+docker build -f Dockerfile.stdio -t bitbucket-mcp:stdio .
+
+# Run the container in stdio mode (interactive)
+docker run -i --rm \
+  -e BITBUCKET_USERNAME=your-username \
+  -e BITBUCKET_APP_PASSWORD=your-password \
+  -e BITBUCKET_WORKSPACE=your-workspace \
+  bitbucket-mcp:stdio
+```
+
+**Note**: The stdio image does not expose any ports and communicates via stdin/stdout.
 
 ## Troubleshooting
 

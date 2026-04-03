@@ -1,12 +1,23 @@
 using BitbucketMCP.Configuration;
-using BitbucketMCP.Generated;
 using Microsoft.Kiota.Abstractions;
 using Microsoft.Kiota.Abstractions.Authentication;
-using Microsoft.Kiota.Http.HttpClientLibrary;
 using ModelContextProtocol.Server;
 using System.Text;
 
-var builder = WebApplication.CreateBuilder(args);
+// Parse transport argument (--transport=stdio or --transport=http)
+var transport = args
+    .FirstOrDefault(arg => arg.StartsWith("--transport=", StringComparison.OrdinalIgnoreCase))?
+    .Split('=', 2)
+    .LastOrDefault()
+    ?.ToLowerInvariant() ?? "http";
+
+if (transport != "http" && transport != "stdio")
+{
+    Console.Error.WriteLine($"Error: Invalid transport '{transport}'. Valid options are: http, stdio");
+    Environment.Exit(1);
+}
+
+Console.WriteLine($"Starting BitbucketMCP with {transport} transport...");
 
 // Read and validate Bitbucket configuration from environment variables
 var config = new BitbucketConfig
@@ -26,66 +37,35 @@ catch (InvalidOperationException ex)
     Environment.Exit(1);
 }
 
-// Register configuration as singleton
-builder.Services.AddSingleton(config);
-
-// Register authentication provider based on configuration (inline implementations)
-builder.Services.AddSingleton<IAuthenticationProvider>(sp =>
+if (transport == "stdio")
 {
-    var bitbucketConfig = sp.GetRequiredService<BitbucketConfig>();
-    return new BasicAuthProvider(bitbucketConfig.Username, bitbucketConfig.AppPassword);
-});
+    // Stdio transport setup
+    var builder = Host.CreateApplicationBuilder(args);
 
-// Register HttpClient for Kiota
-builder.Services.AddHttpClient("Kiota", client =>
-{
-    client.BaseAddress = new Uri("https://api.bitbucket.org/2.0");
-    client.Timeout = TimeSpan.FromSeconds(30);
-});
-
-// Register Kiota RequestAdapter
-builder.Services.AddSingleton(sp =>
-{
-    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-    var authProvider = sp.GetRequiredService<IAuthenticationProvider>();
-    var httpClient = httpClientFactory.CreateClient("Kiota");
+    builder.Services.RegisterServices(config);
     
-    return new HttpClientRequestAdapter(authProvider, httpClient: httpClient);
-});
-
-// Register Kiota BitbucketApiClient (used directly by Tools)
-builder.Services.AddSingleton<BitbucketApiClient>(sp =>
+    // Configure MCP Server with stdio transport
+    builder.Services.AddMcpServer()
+        .WithStdioServerTransport()
+        .WithToolsFromAssembly();
+    
+    await builder.Build().RunAsync();
+}
+else // HTTP transport
 {
-    var requestAdapter = sp.GetRequiredService<HttpClientRequestAdapter>();
-    return new BitbucketApiClient(requestAdapter);
-});
+    var builder = WebApplication.CreateBuilder(args);
 
-// Configure MCP Server with HTTP/SSE transport
-builder.Services.AddMcpServer()
-    .WithHttpTransport()
-    .WithToolsFromAssembly();
-
-var app = builder.Build();
-
-// Map MCP endpoints (Streamable HTTP)
-app.MapMcp();
-
-app.Run();
-
-// Inline authentication providers (no longer in separate file)
-
-/// <summary>
-/// Authentication provider for Basic Authentication (App Password)
-/// </summary>
-file class BasicAuthProvider(string username, string appPassword) : IAuthenticationProvider
-{
-    private readonly string _username = username ?? throw new ArgumentNullException(nameof(username));
-    private readonly string _appPassword = appPassword ?? throw new ArgumentNullException(nameof(appPassword));
-
-    public Task AuthenticateRequestAsync(RequestInformation request, Dictionary<string, object>? additionalAuthenticationContext = null, CancellationToken cancellationToken = default)
-    {
-        var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_username}:{_appPassword}"));
-        request.Headers.Add("Authorization", $"Basic {credentials}");
-        return Task.CompletedTask;
-    }
+    builder.Services.RegisterServices(config);
+    
+    // Configure MCP Server with HTTP transport
+    builder.Services.AddMcpServer()
+        .WithHttpTransport()
+        .WithToolsFromAssembly();
+    
+    var app = builder.Build();
+    
+    // Map MCP endpoints
+    app.MapMcp();
+    
+    app.Run();
 }

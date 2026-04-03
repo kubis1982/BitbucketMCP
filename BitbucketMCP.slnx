@@ -2,11 +2,14 @@
   <Folder Name="/solution items/">
     <File Path=".gitignore" />
     <File Path="docker-compose.yml" />
-    <File Path="Dockerfile" />
     <File Path="README.md" />
   </Folder>
   <Folder Name="/solution items/ci/">
     <File Path=".github/workflows/release.yml" />
+  </Folder>
+  <Folder Name="/solution items/dockers/">
+    <File Path="Dockerfile" />
+    <File Path="Dockerfile.stdio" />
   </Folder>
   <Folder Name="/solution items/scripts/">
     <File Path="scripts/generate-client.bat" />

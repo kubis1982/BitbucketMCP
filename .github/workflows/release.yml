@@ -129,8 +129,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract Docker metadata
-        id: docker-meta
+      - name: Extract Docker metadata (HTTP)
+        id: docker-meta-http
         uses: docker/metadata-action@v5
         with:
           images: |
@@ -141,19 +141,44 @@ jobs:
             type=semver,pattern={{major}}.{{minor}},value=v${{ needs.validate-version.outputs.version }}
             type=raw,value=latest
 
-      - name: Build and push to registries
+      - name: Extract Docker metadata (Stdio)
+        id: docker-meta-stdio
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            docker.io/${{ secrets.DOCKER_USERNAME }}/bitbucketmcp
+            ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}-stdio,value=v${{ needs.validate-version.outputs.version }}
+            type=raw,value=latest-stdio
+
+      - name: Build and push HTTP image
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: ./Dockerfile
           push: true
-          tags: ${{ steps.docker-meta.outputs.tags }}
-          labels: ${{ steps.docker-meta.outputs.labels }}
+          tags: ${{ steps.docker-meta-http.outputs.tags }}
+          labels: ${{ steps.docker-meta-http.outputs.labels }}
+
+      - name: Build and push Stdio image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.stdio
+          push: true
+          tags: ${{ steps.docker-meta-stdio.outputs.tags }}
+          labels: ${{ steps.docker-meta-stdio.outputs.labels }}
 
       - name: List Docker images
         run: |
           echo "🐳 Docker images built and pushed:"
-          echo "📦 docker.io/${{ secrets.DOCKER_USERNAME }}/bitbucketmcp:v${{ needs.validate-version.outputs.version }}"
-          echo "📦 ghcr.io/${{ github.repository }}:v${{ needs.validate-version.outputs.version }}"
+          echo "📦 HTTP Transport:"
+          echo "   docker.io/${{ secrets.DOCKER_USERNAME }}/bitbucketmcp:v${{ needs.validate-version.outputs.version }}"
+          echo "   ghcr.io/${{ github.repository }}:v${{ needs.validate-version.outputs.version }}"
+          echo "📦 Stdio Transport:"
+          echo "   docker.io/${{ secrets.DOCKER_USERNAME }}/bitbucketmcp:v${{ needs.validate-version.outputs.version }}-stdio"
+          echo "   ghcr.io/${{ github.repository }}:v${{ needs.validate-version.outputs.version }}-stdio"
 
   create-github-release:
     name: Create GitHub Release
@@ -292,27 +317,58 @@ jobs:
 
           echo "## 🐳 Docker Images" > docker.md
           echo "" >> docker.md
-          echo "This release is available as Docker images:" >> docker.md
+          echo "This release is available as Docker images in two variants:" >> docker.md
           echo "" >> docker.md
-          echo "### Pull from Docker Hub" >> docker.md
+          
+          echo "### 🌐 HTTP Transport (Default)" >> docker.md
+          echo "" >> docker.md
+          echo "For running as an HTTP/SSE MCP server:" >> docker.md
+          echo "" >> docker.md
+          echo "**Pull from Docker Hub:**" >> docker.md
           echo '```bash' >> docker.md
           echo "docker pull ${{ secrets.DOCKER_USERNAME }}/bitbucketmcp:$VERSION" >> docker.md
           echo "docker pull ${{ secrets.DOCKER_USERNAME }}/bitbucketmcp:latest" >> docker.md
           echo '```' >> docker.md
           echo "" >> docker.md
-          echo "### Pull from GitHub Container Registry" >> docker.md
+          echo "**Pull from GitHub Container Registry:**" >> docker.md
           echo '```bash' >> docker.md
           echo "docker pull ghcr.io/${{ github.repository }}:$VERSION" >> docker.md
           echo "docker pull ghcr.io/${{ github.repository }}:latest" >> docker.md
           echo '```' >> docker.md
           echo "" >> docker.md
-          echo "### Run Docker Container" >> docker.md
+          echo "**Run HTTP Container:**" >> docker.md
           echo '```bash' >> docker.md
           echo "docker run -p 8080:8080 \\" >> docker.md
           echo "  -e BITBUCKET_USERNAME=your_username \\" >> docker.md
           echo "  -e BITBUCKET_APP_PASSWORD=your_app_password \\" >> docker.md
           echo "  -e BITBUCKET_WORKSPACE=your_workspace \\" >> docker.md
           echo "  ghcr.io/${{ github.repository }}:$VERSION" >> docker.md
+          echo '```' >> docker.md
+          echo "" >> docker.md
+          
+          echo "### 📟 Stdio Transport" >> docker.md
+          echo "" >> docker.md
+          echo "For running as a stdio MCP server (e.g., for Claude Desktop):" >> docker.md
+          echo "" >> docker.md
+          echo "**Pull from Docker Hub:**" >> docker.md
+          echo '```bash' >> docker.md
+          echo "docker pull ${{ secrets.DOCKER_USERNAME }}/bitbucketmcp:$VERSION-stdio" >> docker.md
+          echo "docker pull ${{ secrets.DOCKER_USERNAME }}/bitbucketmcp:latest-stdio" >> docker.md
+          echo '```' >> docker.md
+          echo "" >> docker.md
+          echo "**Pull from GitHub Container Registry:**" >> docker.md
+          echo '```bash' >> docker.md
+          echo "docker pull ghcr.io/${{ github.repository }}:$VERSION-stdio" >> docker.md
+          echo "docker pull ghcr.io/${{ github.repository }}:latest-stdio" >> docker.md
+          echo '```' >> docker.md
+          echo "" >> docker.md
+          echo "**Run Stdio Container:**" >> docker.md
+          echo '```bash' >> docker.md
+          echo "docker run -i \\" >> docker.md
+          echo "  -e BITBUCKET_USERNAME=your_username \\" >> docker.md
+          echo "  -e BITBUCKET_APP_PASSWORD=your_app_password \\" >> docker.md
+          echo "  -e BITBUCKET_WORKSPACE=your_workspace \\" >> docker.md
+          echo "  ghcr.io/${{ github.repository }}:$VERSION-stdio" >> docker.md
           echo '```' >> docker.md
           echo "" >> docker.md
 
