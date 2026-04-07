@@ -96,7 +96,7 @@ For HTTP/SSE-based clients, use the `-http` tagged images:
    curl -H "Accept: text/event-stream" http://localhost:8080/
    ```
 
-### Local Development (HTTP Transport - Default)
+### Local Development (HTTP Transport)
 
 1. **Restore dependencies**:
    ```bash
@@ -120,7 +120,7 @@ For HTTP/SSE-based clients, use the `-http` tagged images:
 
 3. **Run the server**:
    ```bash
-   dotnet run --project src/BitbucketMCP
+   dotnet run --project src/BitbucketMCP -- --transport=http
    ```
    
    The server will be available at: **http://localhost:5000**
@@ -145,9 +145,7 @@ The server supports two MCP transport modes, controlled via the `--transport` ar
 
 Examples:
 ```bash
-# HTTP transport (default)
-dotnet run --project src/BitbucketMCP
-# or explicitly:
+# HTTP transport
 dotnet run --project src/BitbucketMCP -- --transport=http
 
 # Stdio transport

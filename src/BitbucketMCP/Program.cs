@@ -9,7 +9,7 @@ var transport = args
     .FirstOrDefault(arg => arg.StartsWith("--transport=", StringComparison.OrdinalIgnoreCase))?
     .Split('=', 2)
     .LastOrDefault()
-    ?.ToLowerInvariant() ?? "http";
+    ?.ToLowerInvariant();
 
 if (transport != "http" && transport != "stdio")
 {
