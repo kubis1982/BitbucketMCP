@@ -2,7 +2,7 @@ services:
   bitbucket-http:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: http/Dockerfile
     container_name: bitbucket-mcp-http
     ports:
       - "8080:8080"
@@ -23,7 +23,7 @@ services:
   bitbucket-stdio:
       build:
         context: .
-        dockerfile: Dockerfile.stdio
+        dockerfile: stdio/Dockerfile
       container_name: bitbucket-mcp-stdio
       environment:      
         # For app_password authentication:

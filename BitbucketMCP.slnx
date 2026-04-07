@@ -7,9 +7,11 @@
   <Folder Name="/solution items/ci/">
     <File Path=".github/workflows/release.yml" />
   </Folder>
-  <Folder Name="/solution items/dockers/">
-    <File Path="Dockerfile" />
-    <File Path="Dockerfile.stdio" />
+  <Folder Name="/solution items/dockers/http/">
+    <File Path="http/Dockerfile" />
+  </Folder>
+  <Folder Name="/solution items/dockers/stdio/">
+    <File Path="stdio/Dockerfile" />
   </Folder>
   <Folder Name="/solution items/scripts/">
     <File Path="scripts/generate-client.bat" />

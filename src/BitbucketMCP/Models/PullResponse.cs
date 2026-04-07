@@ -33,8 +33,8 @@ namespace BitbucketMCP.Models
                 UpdatedOn = pr.UpdatedOn,
                 CommentCount = pr.CommentCount,
                 TaskCount = pr.TaskCount,
-                Reviewers = pr.Reviewers?.Where(r => r != null)
-                                       .Select(r => r!.Uuid ?? r!.DisplayName)
+                Reviewers = pr.Reviewers?.Where(r => r != null || r!.Uuid != null || r!.DisplayName != null)
+                                       .Select(r => r!.Uuid ?? r!.DisplayName!)
                                        .ToList()
             };
         }
