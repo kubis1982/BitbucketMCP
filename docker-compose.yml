@@ -34,4 +34,7 @@ services:
         # Optional: Logging level (Trace, Debug, Information, Warning, Error)
         # ASPNETCORE_LOGGING__LOGLEVEL__DEFAULT: "Information"
     
+      stdin_open: true
+      tty: true
+
       restart: unless-stopped
