@@ -7,15 +7,12 @@
   <Folder Name="/solution items/ci/">
     <File Path=".github/workflows/release.yml" />
   </Folder>
+  <Folder Name="/solution items/dockers/" />
   <Folder Name="/solution items/dockers/http/">
     <File Path="http/Dockerfile" />
   </Folder>
   <Folder Name="/solution items/dockers/stdio/">
     <File Path="stdio/Dockerfile" />
-  </Folder>
-  <Folder Name="/solution items/scripts/">
-    <File Path="scripts/generate-client.bat" />
-    <File Path="scripts/generate-client.ps1" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/BitbucketMCP/BitbucketMCP.csproj" />

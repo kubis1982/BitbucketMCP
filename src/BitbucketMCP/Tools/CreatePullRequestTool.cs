@@ -1,15 +1,12 @@
 using BitbucketMCP.Configuration;
-using BitbucketMCP.Generated;
-using BitbucketMCP.Generated.Models;
 using BitbucketMCP.Models;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
-using System.Linq;
 
 namespace BitbucketMCP.Tools;
 
 [McpServerToolType]
-public class CreatePullRequestTool(BitbucketApiClient client, BitbucketConfig config)
+public class CreatePullRequestTool(BitbucketRestClient client, BitbucketConfig config)
 {
     [McpServerTool(Name = "create_pull_request")]
     [Description("Creates a new pull request in a Bitbucket repository")]

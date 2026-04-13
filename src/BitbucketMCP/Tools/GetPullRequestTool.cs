@@ -1,5 +1,4 @@
 using BitbucketMCP.Configuration;
-using BitbucketMCP.Generated;
 using BitbucketMCP.Models;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
@@ -7,7 +6,7 @@ using System.ComponentModel;
 namespace BitbucketMCP.Tools;
 
 [McpServerToolType]
-public class GetPullRequestTool(BitbucketApiClient client, BitbucketConfig config)
+public class GetPullRequestTool(BitbucketRestClient client, BitbucketConfig config)
 {
     [McpServerTool(Name = "get_pull_request")]
     [Description("Retrieves details of a specific pull request from a Bitbucket repository")]
