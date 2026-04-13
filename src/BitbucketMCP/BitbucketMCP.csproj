@@ -9,7 +9,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Kubis1982.Atlassian.Bitbucket.RestClient.v2" Version="2.300.163" />
+		<PackageReference Include="Kubis1982.Atlassian.Bitbucket.RestClient.v2" Version="2.300.163.1" />
 		<PackageReference Include="ModelContextProtocol" Version="1.2.0" />
 		<PackageReference Include="ModelContextProtocol.AspNetCore" Version="1.2.0" />
 	</ItemGroup>
