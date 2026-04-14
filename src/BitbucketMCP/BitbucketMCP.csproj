@@ -38,7 +38,7 @@
 	<ItemGroup>
 		<None Include=".mcp/server.json" Pack="true" PackagePath="/.mcp/" />
 		<None Include="..\..\LICENSE" Link="LICENSE" Pack="true" PackagePath="" />
-		<None Include="..\..\README.md" Pack="true" PackagePath="" />
+		<None Include="README.md" Pack="true" PackagePath="" />
 		<None Include="..\..\docs\icon.png" Link="icon.png" Pack="true" PackagePath="" />
 	</ItemGroup>
 
