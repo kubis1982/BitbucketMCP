@@ -7,7 +7,6 @@ A Model Context Protocol (MCP) server that provides a wrapper for Bitbucket Clou
 - **MCP Protocol Support**: Full implementation of Model Context Protocol with **two transport options**:
   - **HTTP/SSE transport** (Streamable HTTP) - for web-based clients
   - **Stdio transport** - for process-based integration (e.g., Claude Desktop)
-- **Kiota-Generated Client**: Type-safe API client auto-generated from Bitbucket OpenAPI specification
 - **Bitbucket App Password Authentication**: Secure authentication using Bitbucket app passwords
 - **Docker Support**: Ready-to-use Docker containers for both transport modes
 - **Modern .NET**: Built on .NET 10 with flexible transport configuration
@@ -437,17 +436,9 @@ docker run -d --rm \
 
 ```
 BitbucketMCP/
-├── .config/
-│   └── dotnet-tools.json       # Local .NET tools manifest (Kiota)
-├── openapi/
-│   └── bitbucket-swagger.json  # Bitbucket OpenAPI specification
-├── scripts/
-│   ├── generate-client.ps1     # PowerShell script for client generation
-│   └── generate-client.bat     # Batch wrapper for generation script
 ├── src/
 │   └── BitbucketMCP/
 │       ├── Configuration/      # Configuration models
-│       ├── Generated/          # Kiota-generated API client (auto-generated)
 │       ├── Tools/              # MCP tool implementations
 │       └── Program.cs          # Application entry point + DI + inline auth providers
 ├── http/
@@ -458,40 +449,9 @@ BitbucketMCP/
 └── README.md                   # This file
 ```
 
-### Regenerating API Client
-
-The Bitbucket API client is generated from the official OpenAPI specification using Microsoft Kiota. To regenerate after API updates:
-
-1. **Restore tools**:
-   ```bash
-   dotnet tool restore
-   ```
-
-2. **Run generation script**:
-   ```bash
-   # Windows
-   .\scripts\generate-client.bat
-   
-   # Linux/Mac with PowerShell
-   pwsh ./scripts/generate-client.ps1
-   ```
-
-3. **Verify changes**:
-   ```bash
-   dotnet build
-   ```
-
-The script will:
-- Download the latest OpenAPI spec from Bitbucket
-- Clean the `src/BitbucketMCP/Generated/` directory
-- Generate a fresh API client with all models and request builders
-- Output generation summary
-
 ### Architecture Notes
 
 - **HTTP/SSE Transport**: Server uses ASP.NET Core with Streamable HTTP transport (MCP SDK 1.2.0+)
-- **Direct Kiota Usage**: Tools use the `Generated/BitbucketApiClient` directly without any wrapper layer
-- **No Model Mapping**: Tools work with Kiota-generated models (`Pullrequest`, `Account`, etc.) and format output as needed
 - **Inline Authentication**: Custom authentication providers are defined as file-scoped classes in `Program.cs`
 - **Simplified DI**: `Program.cs` registers only the Kiota client and authentication; Tools receive the client via constructor injection
 - **Type Safety**: Full IntelliSense and compile-time checking for all API operations
@@ -504,16 +464,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgments
 
 - Built with [Model Context Protocol C# SDK](https://github.com/modelcontextprotocol/csharp-sdk)
-- API client generated with [Microsoft Kiota](https://github.com/microsoft/kiota)
-- Powered by [Bitbucket Cloud REST API v2.0](https://developer.atlassian.com/cloud/bitbucket/rest/)
 - Uses [.NET 10](https://dot.net)
-
-## Support
-
-For issues, questions, or contributions, please visit:
-- GitHub Issues: https://github.com/kubis1982/BitbucketMCP/issues
-- Bitbucket API Documentation: https://developer.atlassian.com/cloud/bitbucket/rest/
-
-## Version
-
-Current version: 1.0.0

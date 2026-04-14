@@ -1,14 +1,12 @@
 using BitbucketMCP.Configuration;
-using BitbucketMCP.Generated;
 using BitbucketMCP.Models;
-using BitbucketMCP.Generated.Models;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 
 namespace BitbucketMCP.Tools;
 
 [McpServerToolType]
-public class UpdatePullRequestTool(BitbucketApiClient client, BitbucketConfig config)
+public class UpdatePullRequestTool(BitbucketRestClient client, BitbucketConfig config)
 {
     [McpServerTool(Name = "update_pull_request")]
     [Description("Updates an existing pull request in a Bitbucket repository")]

@@ -1,6 +1,4 @@
 using BitbucketMCP.Configuration;
-using BitbucketMCP.Generated;
-using BitbucketMCP.Generated.Repositories.Item.Item.Pullrequests;
 using BitbucketMCP.Models;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
@@ -8,7 +6,7 @@ using System.ComponentModel;
 namespace BitbucketMCP.Tools;
 
 [McpServerToolType]
-public class ListPullRequestsTool(BitbucketApiClient client, BitbucketConfig config)
+public class ListPullRequestsTool(BitbucketRestClient client, BitbucketConfig config)
 {
     [McpServerTool(Name = "list_pull_requests")]
     [Description("Lists pull requests in a Bitbucket repository with optional filtering")]

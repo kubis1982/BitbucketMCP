@@ -1,5 +1,4 @@
 using BitbucketMCP.Configuration;
-using BitbucketMCP.Generated;
 using Microsoft.Kiota.Abstractions;
 using Microsoft.Kiota.Abstractions.Authentication;
 using Microsoft.Kiota.Http.HttpClientLibrary;
@@ -40,7 +39,7 @@ internal static class McpServiceCollectionExtensions
         service.AddSingleton(sp =>
         {
             var requestAdapter = sp.GetRequiredService<HttpClientRequestAdapter>();
-            return new BitbucketApiClient(requestAdapter);
+            return new BitbucketRestClient(requestAdapter);
         });
 
         return service;

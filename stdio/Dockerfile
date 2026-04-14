@@ -27,4 +27,4 @@ USER mcpuser
 COPY --from=publish /app/publish .
 
 # Set entry point with stdio transport
-ENTRYPOINT ["dotnet", "BitbucketMCP.dll", "--transport=stdio"]
+ENTRYPOINT ["dotnet", "Kubis1982.Atlassian.Bitbucket.MCP.dll", "--transport=stdio"]

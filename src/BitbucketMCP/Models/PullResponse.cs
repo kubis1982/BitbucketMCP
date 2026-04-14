@@ -1,8 +1,3 @@
-using BitbucketMCP.Generated.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace BitbucketMCP.Models
 {
     public class PullResponse
