@@ -7,12 +7,39 @@
 		<Nullable>enable</Nullable>
 		<Version>3.1.0</Version>
 		<AssemblyName>Kubis1982.Atlassian.Bitbucket.MCP</AssemblyName>
+
+		<IsPackable>true</IsPackable>
+		<PackageId>Kubis1982.Atlassian.Bitbucket.MCP</PackageId>
+		<Authors>Mariusz Świątnicki</Authors>
+		<Company>Mariusz Świątnicki</Company>
+		<description>A Model Context Protocol (MCP) server for Atlassian Bitbucket, providing AI-powered code review and assistance features.</description>
+		<PackageTags>mcp;model-context-protocol;ai;copilot;dnx;community</PackageTags>
+		<PackageProjectUrl>https://github.com/kubis1982/BitbucketMCP</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/kubis1982/BitbucketMCP</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<PackageIcon>icon.png</PackageIcon>
+		<McpServerJsonTemplateFile>.mcp\server.json</McpServerJsonTemplateFile>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PublishRepositoryUrl>true</PublishRepositoryUrl>
+
+		<PackAsTool>true</PackAsTool>
+		<PackageType>McpServer</PackageType>
+		<ToolCommandName>bitbucket-mcp</ToolCommandName>
+		
 	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Kubis1982.Atlassian.Bitbucket.RestClient.v2" Version="2.300.163.1" />
 		<PackageReference Include="ModelContextProtocol" Version="1.2.0" />
 		<PackageReference Include="ModelContextProtocol.AspNetCore" Version="1.2.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include=".mcp/server.json" Pack="true" PackagePath="/.mcp/" />
+		<None Include="..\..\LICENSE" Link="LICENSE" Pack="true" PackagePath="" />
+		<None Include="README.md" Pack="true" PackagePath="" />
+		<None Include="..\..\docs\icon.png" Link="icon.png" Pack="true" PackagePath="" />
 	</ItemGroup>
 
 </Project>
