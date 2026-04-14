@@ -8,6 +8,7 @@
 		<Version>3.1.0</Version>
 		<AssemblyName>Kubis1982.Atlassian.Bitbucket.MCP</AssemblyName>
 
+		<IsPackable>true</IsPackable>
 		<PackageId>Kubis1982.Atlassian.Bitbucket.MCP</PackageId>
 		<Authors>Mariusz Świątnicki</Authors>
 		<Company>Mariusz Świątnicki</Company>
@@ -33,9 +34,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<None Include="..\..\LICENSE" Link="LICENSE" Pack="true" PackagePath=""/>
+		<None Include=".mcp/server.json" Pack="true" />
+		<None Include="..\..\LICENSE" Link="LICENSE" Pack="true" PackagePath="" />
 		<None Include="..\..\README.md" Pack="true" PackagePath="" />
-		<None Include="..\..\docs\icon.png" Link="icon.png" Pack="true" PackagePath=""/>
+		<None Include="..\..\docs\icon.png" Link="icon.png" Pack="true" PackagePath="" />
 	</ItemGroup>
 
 </Project>
