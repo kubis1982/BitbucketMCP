@@ -1,8 +1,7 @@
-using Xunit;
 using BitbucketMCP.Models;
-using BitbucketMCP.Generated.Models;
 using System;
 using System.Collections.Generic;
+using Xunit;
 
 namespace BitbucketMCP.Tests
 {
@@ -16,7 +15,7 @@ namespace BitbucketMCP.Tests
                 Id = 42,
                 Title = "Test PR",
                 Summary = new Pullrequest_summary { Raw = "Desc" },
-                State = BitbucketMCP.Generated.Models.Pullrequest_state.OPEN,
+                State = Pullrequest_state.OPEN,
                 Links = new Pullrequest_links { Html = new Pullrequest_links_html { Href = "http://example.com" } },
                 CreatedOn = DateTimeOffset.Parse("2020-01-01T00:00:00Z"),
                 UpdatedOn = DateTimeOffset.Parse("2020-01-02T00:00:00Z"),
