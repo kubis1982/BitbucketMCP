@@ -1,15 +1,11 @@
 using BitbucketMCP.Configuration;
-using Microsoft.Kiota.Abstractions;
-using Microsoft.Kiota.Abstractions.Authentication;
-using ModelContextProtocol.Server;
-using System.Text;
 
 // Parse transport argument (--transport=stdio or --transport=http)
 var transport = args
     .FirstOrDefault(arg => arg.StartsWith("--transport=", StringComparison.OrdinalIgnoreCase))?
     .Split('=', 2)
     .LastOrDefault()
-    ?.ToLowerInvariant();
+    ?.ToLowerInvariant() ?? "stdio";
 
 if (transport != "http" && transport != "stdio")
 {
