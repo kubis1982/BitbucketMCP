@@ -33,4 +33,4 @@ COPY --from=publish /app/publish .
 ENV ASPNETCORE_URLS=http://+:8080
 
 # Set entry point
-ENTRYPOINT ["dotnet", "BitbucketMCP.dll", "--transport=http"]
+ENTRYPOINT ["dotnet", "Kubis1982.Atlassian.Bitbucket.MCP.dll", "--transport=http"]
