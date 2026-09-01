@@ -17,7 +17,9 @@ public class CreatePullRequestTool(BitbucketRestClient client, BitbucketConfig c
         [Description("The source branch name (the branch to merge from)")] string sourceBranch,
         [Description("The destination branch name (the branch to merge into, usually 'main' or 'master')")] string destinationBranch,
         [Description("Optional array of reviewer account UUIDs in format '{account-id}'")] List<string>? reviewers = null,
-        [Description("Whether this is a draft pull request (note: managed via description prefix)")] bool isDraft = false)
+        [Description("Whether this is a draft pull request (note: managed via description prefix)")] bool isDraft = false,
+        [Description("Whether to automatically add the repository's default reviewers to the pull request")] bool addDefaultReviewers = false,
+        [Description("Whether to close the source branch after the pull request is merged")] bool closeSourceBranch = false)
     {
         var pr = new Pullrequest
         {
@@ -40,18 +42,28 @@ public class CreatePullRequestTool(BitbucketRestClient client, BitbucketConfig c
                     Name = destinationBranch
                 }
             },
-            CloseSourceBranch = false,
+            CloseSourceBranch = closeSourceBranch,
             Draft = isDraft
         };
 
-        // Add reviewers if specified
-        if (reviewers?.Any() == true)
+        reviewers ??= [];
+
+        var reviewerUuids = new HashSet<string>(reviewers, StringComparer.OrdinalIgnoreCase);
+
+        if (addDefaultReviewers)
         {
-            pr.Reviewers = reviewers.Select(uuid => new Account
+            var defaultReviewers = await client.Repositories[config.Workspace][repo].EffectiveDefaultReviewers.GetAsync();
+
+            foreach (var uuid in defaultReviewers?.Values?.Select(v => v.User?.Uuid).OfType<string>() ?? [])
             {
-                Uuid = uuid
-            }).ToList();
+                reviewerUuids.Add(uuid);
+            }
         }
+
+        pr.Reviewers = [.. reviewerUuids.Select(uuid => new Account
+        {
+            Uuid = uuid
+        })];
 
         var result = await client.Repositories[config.Workspace][repo].Pullrequests.PostAsync(pr) ?? throw new InvalidOperationException("Failed to create pull request: No response from API");
         
