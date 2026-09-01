@@ -21,6 +21,7 @@ namespace BitbucketMCP.Tests
                 UpdatedOn = DateTimeOffset.Parse("2020-01-02T00:00:00Z"),
                 CommentCount = 3,
                 TaskCount = 1,
+                CloseSourceBranch = true,
                 Reviewers = new List<Account> { new Account { Uuid = "{uuid}", DisplayName = "User" } }
             };
 
@@ -35,6 +36,7 @@ namespace BitbucketMCP.Tests
             Assert.Equal(pr.UpdatedOn, dto.UpdatedOn);
             Assert.Equal(pr.CommentCount, dto.CommentCount);
             Assert.Equal(pr.TaskCount, dto.TaskCount);
+            Assert.Equal(pr.CloseSourceBranch, dto.CloseSourceBranch);
             Assert.Contains("{uuid}", dto.Reviewers);
         }
     }

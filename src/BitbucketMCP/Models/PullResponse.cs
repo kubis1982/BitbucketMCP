@@ -11,6 +11,7 @@ namespace BitbucketMCP.Models
         public DateTimeOffset? UpdatedOn { get; set; }
         public int? CommentCount { get; set; }
         public int? TaskCount { get; set; }
+        public bool? CloseSourceBranch { get; set; }
         public List<string>? Reviewers { get; set; }
 
         public static PullResponse From(Pullrequest pr)
@@ -28,6 +29,7 @@ namespace BitbucketMCP.Models
                 UpdatedOn = pr.UpdatedOn,
                 CommentCount = pr.CommentCount,
                 TaskCount = pr.TaskCount,
+                CloseSourceBranch = pr.CloseSourceBranch,
                 Reviewers = pr.Reviewers?.Where(r => r != null || r!.Uuid != null || r!.DisplayName != null)
                                        .Select(r => r!.Uuid ?? r!.DisplayName!)
                                        .ToList()
