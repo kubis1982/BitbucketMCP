@@ -35,16 +35,16 @@ jobs:
           fi
           echo "✅ Version format is valid: $VERSION"
 
-      - name: Validate version matches BitbucketMCP.csproj
+      - name: Validate version matches Directory.Build.props
         run: |
           VERSION="${{ steps.extract-version.outputs.version }}"
-          CSPROJ_VERSION=$(grep -oP '(?<=<Version>)[^<]+' ./src/BitbucketMCP/BitbucketMCP.csproj)
-          if [ "$CSPROJ_VERSION" != "$VERSION" ]; then
-            echo "❌ Tag v$VERSION does not match <Version>$CSPROJ_VERSION</Version> in BitbucketMCP.csproj."
-            echo "Bump the version in BitbucketMCP.csproj and commit it to main before creating the tag."
+          PROPS_VERSION=$(grep -oP '(?<=<Version>)[^<]+' ./Directory.Build.props)
+          if [ "$PROPS_VERSION" != "$VERSION" ]; then
+            echo "❌ Tag v$VERSION does not match <Version>$PROPS_VERSION</Version> in Directory.Build.props."
+            echo "Bump the version in Directory.Build.props and commit it to main before creating the tag."
             exit 1
           fi
-          echo "✅ Tag version matches BitbucketMCP.csproj: $VERSION"
+          echo "✅ Tag version matches Directory.Build.props: $VERSION"
 
   test:
     name: Run Tests
