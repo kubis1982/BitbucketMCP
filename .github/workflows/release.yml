@@ -214,11 +214,13 @@ jobs:
       - name: Get previous tag
         id: previous-tag
         run: |
-          # Get all tags sorted by version, excluding current
+          # Find the tag immediately preceding the current one in semver order,
+          # not just the highest other tag (matters for out-of-order releases,
+          # e.g. a v3.1.1 hotfix cut after v3.2.0 already exists).
           CURRENT_TAG="v${{ needs.validate-version.outputs.version }}"
-          PREVIOUS_TAG=$(git tag -l "v*.*.*" | grep -v "$CURRENT_TAG" | sort -V | tail -n 1)
+          PREVIOUS_TAG=$(git tag -l "v*.*.*" | sort -V | grep -B1 -x -F "$CURRENT_TAG" | head -n 1)
 
-          if [ -z "$PREVIOUS_TAG" ]; then
+          if [ -z "$PREVIOUS_TAG" ] || [ "$PREVIOUS_TAG" = "$CURRENT_TAG" ]; then
             echo "No previous tag found, using first commit"
             PREVIOUS_TAG=$(git rev-list --max-parents=0 HEAD)
           fi
