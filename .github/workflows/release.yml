@@ -15,8 +15,10 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.extract-version.outputs.version }}
-      is-valid: ${{ steps.validate.outputs.is-valid }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Extract version from tag
         id: extract-version
         run: |
@@ -25,17 +27,24 @@ jobs:
           echo "Version extracted: $TAG_NAME"
 
       - name: Validate version format
-        id: validate
         run: |
           VERSION="${{ steps.extract-version.outputs.version }}"
-          if [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "is-valid=true" >> $GITHUB_OUTPUT
-            echo "✅ Version format is valid: $VERSION"
-          else
-            echo "is-valid=false" >> $GITHUB_OUTPUT
+          if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "❌ Invalid version format: $VERSION. Expected format: x.y.z"
             exit 1
           fi
+          echo "✅ Version format is valid: $VERSION"
+
+      - name: Validate version matches BitbucketMCP.csproj
+        run: |
+          VERSION="${{ steps.extract-version.outputs.version }}"
+          CSPROJ_VERSION=$(grep -oP '(?<=<Version>)[^<]+' ./src/BitbucketMCP/BitbucketMCP.csproj)
+          if [ "$CSPROJ_VERSION" != "$VERSION" ]; then
+            echo "❌ Tag v$VERSION does not match <Version>$CSPROJ_VERSION</Version> in BitbucketMCP.csproj."
+            echo "Bump the version in BitbucketMCP.csproj and commit it to main before creating the tag."
+            exit 1
+          fi
+          echo "✅ Tag version matches BitbucketMCP.csproj: $VERSION"
 
   test:
     name: Run Tests
@@ -66,52 +75,13 @@ jobs:
           name: test-results
           path: '**/TestResults/*.trx'
 
-  create-release-branch:
-    name: Create Release Branch
+  build-and-docker:
+    name: Build and Publish Docker Image
     needs: [validate-version, test]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Configure Git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Create release branch
-        run: |
-          VERSION="${{ needs.validate-version.outputs.version }}"
-          BRANCH_NAME="release/v$VERSION"
-          git checkout -b $BRANCH_NAME
-          echo "✅ Created branch: $BRANCH_NAME"
-
-      - name: Update version in BitbucketMCP.csproj
-        run: |
-          VERSION="${{ needs.validate-version.outputs.version }}"
-          sed -i "s/<Version>.*<\/Version>/<Version>$VERSION<\/Version>/" ./src/BitbucketMCP/BitbucketMCP.csproj
-          echo "✅ Updated version to $VERSION in BitbucketMCP.csproj"
-
-      - name: Commit version update
-        run: |
-          VERSION="${{ needs.validate-version.outputs.version }}"
-          git add ./src/BitbucketMCP/BitbucketMCP.csproj
-          git commit -m "chore: bump version to $VERSION"
-          git push origin release/v$VERSION
-          echo "✅ Committed and pushed version update"
-
-  build-and-docker:
-    name: Build and Publish Docker Image
-    needs: [validate-version, create-release-branch]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout release branch
-        uses: actions/checkout@v4
-        with:
-          ref: release/v${{ needs.validate-version.outputs.version }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -193,10 +163,9 @@ jobs:
     needs: [validate-version, build-and-docker]
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout release branch
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: release/v${{ needs.validate-version.outputs.version }}
           fetch-depth: 0
 
       - name: Get previous tag
@@ -447,39 +416,3 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  cleanup:
-    name: Cleanup and Merge
-    needs: [validate-version, create-github-release]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Configure Git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-      - name: Merge release branch to main
-        run: |
-          VERSION="${{ needs.validate-version.outputs.version }}"
-          BRANCH_NAME="release/v$VERSION"
-          
-          git fetch origin
-          git checkout main
-          git pull origin main
-          git merge origin/$BRANCH_NAME --no-ff -m "chore: merge release v$VERSION into main"
-          git push origin main
-          echo "✅ Merged $BRANCH_NAME into main"
-
-      - name: Delete release branch
-        run: |
-          VERSION="${{ needs.validate-version.outputs.version }}"
-          BRANCH_NAME="release/v$VERSION"
-          
-          git push origin --delete $BRANCH_NAME
-          echo "✅ Deleted branch $BRANCH_NAME"
