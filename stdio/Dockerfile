@@ -2,7 +2,8 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Copy csproj and restore dependencies
+# Copy Directory.Build.props (shared TargetFramework/Version) and csproj, then restore dependencies
+COPY Directory.Build.props ./
 COPY src/BitbucketMCP/*.csproj ./BitbucketMCP/
 RUN dotnet restore "./BitbucketMCP/BitbucketMCP.csproj"
 
