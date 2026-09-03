@@ -1,5 +1,6 @@
 using BitbucketMCP.Configuration;
 using BitbucketMCP.Models;
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 
@@ -50,29 +51,37 @@ public class CreatePullRequestTool(BitbucketRestClient client, BitbucketConfig c
 
         var reviewerUuids = new HashSet<string>(reviewers, StringComparer.OrdinalIgnoreCase);
 
-        if (addDefaultReviewers)
+        try
         {
-            var defaultReviewers = await client.Repositories[config.Workspace][repo].EffectiveDefaultReviewers.GetAsync();
-            var currentUser = await client.User.GetAsync();
-
-            foreach (var uuid in defaultReviewers?.Values?.Select(v => v.User?.Uuid).OfType<string>() ?? [])
+            if (addDefaultReviewers)
             {
-                if (string.Equals(uuid, currentUser?.Uuid, StringComparison.OrdinalIgnoreCase))
+                var defaultReviewers = await client.Repositories[config.Workspace][repo].EffectiveDefaultReviewers.GetAsync();
+                var currentUser = await client.User.GetAsync();
+
+                foreach (var uuid in defaultReviewers?.Values?.Select(v => v.User?.Uuid).OfType<string>() ?? [])
                 {
-                    continue;
+                    if (string.Equals(uuid, currentUser?.Uuid, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    reviewerUuids.Add(uuid);
                 }
-
-                reviewerUuids.Add(uuid);
             }
+
+            pr.Reviewers = [.. reviewerUuids.Select(uuid => new Account
+            {
+                Uuid = uuid
+            })];
+
+            var result = await client.Repositories[config.Workspace][repo].Pullrequests.PostAsync(pr) ?? throw new McpException("Failed to create pull request: No response from API");
+
+            return PullResponse.From(result);
         }
-
-        pr.Reviewers = [.. reviewerUuids.Select(uuid => new Account
+        catch (Error ex)
         {
-            Uuid = uuid
-        })];
-
-        var result = await client.Repositories[config.Workspace][repo].Pullrequests.PostAsync(pr) ?? throw new InvalidOperationException("Failed to create pull request: No response from API");
-        
-        return PullResponse.From(result);
+            var detail = ex.ErrorProp?.Detail ?? ex.ErrorProp?.Message ?? ex.Message;
+            throw new McpException($"Bitbucket API rejected the request: {detail}", ex);
+        }
     }
 }

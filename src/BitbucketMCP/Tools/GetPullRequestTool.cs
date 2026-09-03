@@ -1,5 +1,6 @@
 using BitbucketMCP.Configuration;
 using BitbucketMCP.Models;
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 
@@ -14,8 +15,16 @@ public class GetPullRequestTool(BitbucketRestClient client, BitbucketConfig conf
         [Description("The repository slug (e.g., 'myrepo')")] string repo,
         [Description("The pull request ID number")] int prId)
     {
-        var result = await client.Repositories[config.Workspace][repo].Pullrequests[prId].GetAsync() ?? throw new InvalidOperationException($"Pull request {prId} not found");
+        try
+        {
+            var result = await client.Repositories[config.Workspace][repo].Pullrequests[prId].GetAsync() ?? throw new McpException($"Pull request {prId} not found");
 
-        return PullResponse.From(result);
+            return PullResponse.From(result);
+        }
+        catch (Error ex)
+        {
+            var detail = ex.ErrorProp?.Detail ?? ex.ErrorProp?.Message ?? ex.Message;
+            throw new McpException($"Bitbucket API rejected the request: {detail}", ex);
+        }
     }
 }

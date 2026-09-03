@@ -1,5 +1,6 @@
 using BitbucketMCP.Configuration;
 using BitbucketMCP.Models;
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 
@@ -14,18 +15,26 @@ public class ListPullRequestsTool(BitbucketRestClient client, BitbucketConfig co
         [Description("The repository slug (e.g., 'myrepo')")] string repo,
         [Description("Filter by state: OPEN, MERGED, DECLINED, SUPERSEDED (optional, defaults to OPEN)")] string? state = null)
     {
-        var result = await client.Repositories[config.Workspace][repo].Pullrequests.GetAsync(config =>
+        try
         {
-            if (!string.IsNullOrEmpty(state))
+            var result = await client.Repositories[config.Workspace][repo].Pullrequests.GetAsync(config =>
             {
-                // Try to parse state to enum
-                if (Enum.TryParse<GetStateQueryParameterType>(state, true, out var stateEnum))
+                if (!string.IsNullOrEmpty(state))
                 {
-                    config.QueryParameters.StateAsGetStateQueryParameterType = stateEnum;
+                    // Try to parse state to enum
+                    if (Enum.TryParse<GetStateQueryParameterType>(state, true, out var stateEnum))
+                    {
+                        config.QueryParameters.StateAsGetStateQueryParameterType = stateEnum;
+                    }
                 }
-            }
-        });
+            });
 
-        return result == null || result.Values == null ? [] : result.Values.Where(p => p != null).Select(p => PullResponse.From(p!)).ToList();
+            return result == null || result.Values == null ? [] : result.Values.Where(p => p != null).Select(p => PullResponse.From(p!)).ToList();
+        }
+        catch (Error ex)
+        {
+            var detail = ex.ErrorProp?.Detail ?? ex.ErrorProp?.Message ?? ex.Message;
+            throw new McpException($"Bitbucket API rejected the request: {detail}", ex);
+        }
     }
 }

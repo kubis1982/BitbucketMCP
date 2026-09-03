@@ -1,5 +1,6 @@
 using BitbucketMCP.Configuration;
 using BitbucketMCP.Models;
+using ModelContextProtocol;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 
@@ -18,34 +19,42 @@ public class UpdatePullRequestTool(BitbucketRestClient client, BitbucketConfig c
         [Description("Updated array of reviewer account UUIDs in format '{account-id}' (optional)")] List<string>? reviewers = null,
         [Description("Update draft status (note: managed via description prefix)")] bool? isDraft = null)
     {
-        // GET current PR
-        var current = await client.Repositories[config.Workspace][repo].Pullrequests[prId].GetAsync() ?? throw new InvalidOperationException($"Pull request {prId} not found");
-
-        // Modify only specified fields
-        if (!string.IsNullOrWhiteSpace(title))
-            current.Title = title;
-
-        if (description is not null)
+        try
         {
-            current.Summary = new Pullrequest_summary
-            {
-                Raw = description
-            };
-        }
+            // GET current PR
+            var current = await client.Repositories[config.Workspace][repo].Pullrequests[prId].GetAsync() ?? throw new McpException($"Pull request {prId} not found");
 
-        if (reviewers is not null)
+            // Modify only specified fields
+            if (!string.IsNullOrWhiteSpace(title))
+                current.Title = title;
+
+            if (description is not null)
+            {
+                current.Summary = new Pullrequest_summary
+                {
+                    Raw = description
+                };
+            }
+
+            if (reviewers is not null)
+            {
+                current.Reviewers = reviewers.Select(uuid => new Account
+                {
+                    Uuid = uuid
+                }).ToList();
+            }
+
+            if (isDraft.HasValue)
+                current.Draft = isDraft;
+
+            var result = await client.Repositories[config.Workspace][repo].Pullrequests[prId].PutAsync(current) ?? throw new McpException("Failed to update pull request: No response from API");
+
+            return PullResponse.From(result);
+        }
+        catch (Error ex)
         {
-            current.Reviewers = reviewers.Select(uuid => new Account
-            {
-                Uuid = uuid
-            }).ToList();
+            var detail = ex.ErrorProp?.Detail ?? ex.ErrorProp?.Message ?? ex.Message;
+            throw new McpException($"Bitbucket API rejected the request: {detail}", ex);
         }
-
-        if (isDraft.HasValue)
-            current.Draft = isDraft;
-
-        var result = await client.Repositories[config.Workspace][repo].Pullrequests[prId].PutAsync(current) ?? throw new InvalidOperationException("Failed to update pull request: No response from API");
-        
-        return PullResponse.From(result);
     }
 }
