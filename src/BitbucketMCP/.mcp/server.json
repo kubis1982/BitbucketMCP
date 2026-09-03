@@ -3,13 +3,13 @@
   "name": "io.github.kubis1982/bitbucket-mcp",
   "title": ".NET MCP Server",
   "description": "A .NET implementation of a Model Context Protocol (MCP) server for Atlassian Bitbucket.",
-  "version": "3.1.0",
+  "version": "3.3.0",
   "packages": [
     {
       "registryType": "nuget",
       "registryBaseUrl": "https://api.nuget.org/v3/index.json",
       "identifier": "Kubis1982.Atlassian.Bitbucket.MCP",
-      "version": "3.1.0",
+      "version": "3.3.0",
       "runtimeHint": "dnx",
       "transport": {
         "type": "stdio"
