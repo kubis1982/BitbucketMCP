@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Template for running CreatePullRequestIntegrationTests from the Visual Studio Test Explorer
+  against a real Bitbucket account.
+
+  1. Copy this file to "integration.runsettings" (same folder is fine) and fill in real values.
+     integration.runsettings is gitignored - never commit real credentials.
+  2. In Visual Studio: Test > Configure Run Settings > Select Solution Wide runsettings File...
+     and pick your copy.
+  3. Open Test Explorer, find CreatePullRequestIntegrationTests, and run it. It will show up as
+     Skipped until the runsettings file is selected and populated.
+-->
+<RunSettings>
+  <RunConfiguration>
+    <EnvironmentVariables>
+      <BITBUCKET_USERNAME>your-bitbucket-username</BITBUCKET_USERNAME>
+      <BITBUCKET_APP_PASSWORD>your-app-password</BITBUCKET_APP_PASSWORD>
+      <BITBUCKET_WORKSPACE>your-workspace</BITBUCKET_WORKSPACE>
+      <BITBUCKET_TEST_REPO>7t-dev</BITBUCKET_TEST_REPO>
+      <BITBUCKET_TEST_SOURCE_BRANCH>develop</BITBUCKET_TEST_SOURCE_BRANCH>
+      <BITBUCKET_TEST_DEST_BRANCH>main</BITBUCKET_TEST_DEST_BRANCH>
+    </EnvironmentVariables>
+  </RunConfiguration>
+</RunSettings>

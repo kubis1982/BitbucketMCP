@@ -11,6 +11,9 @@
 *.sln.docstates
 *.env
 
+# Local integration test credentials (see integration.runsettings.example)
+integration.runsettings
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
