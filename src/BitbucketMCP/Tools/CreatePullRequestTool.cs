@@ -53,9 +53,15 @@ public class CreatePullRequestTool(BitbucketRestClient client, BitbucketConfig c
         if (addDefaultReviewers)
         {
             var defaultReviewers = await client.Repositories[config.Workspace][repo].EffectiveDefaultReviewers.GetAsync();
+            var currentUser = await client.User.GetAsync();
 
             foreach (var uuid in defaultReviewers?.Values?.Select(v => v.User?.Uuid).OfType<string>() ?? [])
             {
+                if (string.Equals(uuid, currentUser?.Uuid, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
                 reviewerUuids.Add(uuid);
             }
         }
