@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Template for running CreatePullRequestIntegrationTests from the Visual Studio Test Explorer
-  against a real Bitbucket account.
+  Template for running the *IntegrationTests classes (CreatePullRequestIntegrationTests,
+  GetPullRequestIntegrationTests, UpdatePullRequestIntegrationTests,
+  ListPullRequestsIntegrationTests, GetCurrentUserIntegrationTests) from the Visual Studio
+  Test Explorer against a real Bitbucket account. They're all tagged with the "Integration"
+  trait, so you can also run them together as a group from Test Explorer.
 
   1. Copy this file to "integration.runsettings" (same folder is fine) and fill in real values.
      integration.runsettings is gitignored - never commit real credentials.
   2. In Visual Studio: Test > Configure Run Settings > Select Solution Wide runsettings File...
      and pick your copy.
-  3. Open Test Explorer, find CreatePullRequestIntegrationTests, and run it. It will show up as
+  3. Open Test Explorer, find the *IntegrationTests classes, and run them. They will show up as
      Skipped until the runsettings file is selected and populated.
 -->
 <RunSettings>
