@@ -280,6 +280,17 @@ Lists pull requests in a repository with optional state filtering.
 }
 ```
 
+### 5. GetCurrentUser
+
+Retrieves the Bitbucket account currently authenticated with the configured `BITBUCKET_USERNAME`/`BITBUCKET_APP_PASSWORD` credentials. Takes no parameters.
+
+**Example**:
+```json
+{}
+```
+
+**Response includes**: UUID, display name, account type, creation date, and avatar URL.
+
 ## Transport Modes
 
 ### Stdio Transport (Recommended for MCP Clients)
@@ -350,6 +361,7 @@ The MCP server wraps the following Bitbucket Cloud REST API v2.0 endpoints:
 | `GetPullRequest` | GET | `/repositories/{workspace}/{repo}/pullrequests/{pr_id}` |
 | `UpdatePullRequest` | PUT | `/repositories/{workspace}/{repo}/pullrequests/{pr_id}` |
 | `ListPullRequests` | GET | `/repositories/{workspace}/{repo}/pullrequests` |
+| `GetCurrentUser` | GET | `/user` |
 
 **Base URL**: `https://api.bitbucket.org/2.0`
 
@@ -462,7 +474,8 @@ BitbucketMCP/
 │   │   ├── CreatePullRequestTool.cs
 │   │   ├── GetPullRequestTool.cs
 │   │   ├── UpdatePullRequestTool.cs
-│   │   └── ListPullRequestsTool.cs
+│   │   ├── ListPullRequestsTool.cs
+│   │   └── GetCurrentUserTool.cs
 │   ├── Program.cs              # Application entry point + DI + transport setup
 │   ├── McpServiceCollectionExtensions.cs  # Extension methods for DI
 │   ├── GlobalUsings.cs         # Global using statements
